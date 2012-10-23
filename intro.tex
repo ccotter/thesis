@@ -1,0 +1,113 @@
+\section{Introduction}
+\label{s:intro}
+
+This thesis describes adding kernel enforced deterministic program execution to
+Linux. In our solution, at a high level, programs enter a \emph{deterministic}
+mode where the kernel provides a very restricted subset of syscalls designed to
+enforce determinism. The kernel enforces determinism, thus making it impossible
+for user programs to possibly behave nondeterinistically, even by deliberate
+design. Internal nondeterministic inputs like hardware data races are entirely
+eliminated, and explicitly nondeterministic inputs like user input or time of
+day become controllable explicit I/O.
+
+\iffalse
+A program is deterministic if for a fixed input, the program always returns the
+same ouput. This is desirable, because it simplifies testing and debugging of
+ever more ubiquitous parallel progams. Linux's parallel programming model is
+inherently nondeterministic, but having the option to run deterministically
+would be a great feature as computing moves towards using multiple cores.
+\fi
+
+Nondeterministic parallel programming is difficult: nondeterministic inputs,
+such as data races, force programmers to use difficult to reason about
+synchronization primatives such as semaphores and condition variables.
+Misuse of these primatives can lead to buggy code and deadlock. Even
+correct use cannot guarantee deterministic execution: conventional
+synchronization primatives are not predictable. This has debugging, testing,
+and security implications.
+
+Deterministic execution overcomes the challenges of nondeterminism, and
+according to Bergan et al. it provides benefits in four main areas: debugging,
+fault tolerance, testing, and security. Thus, we have a strong motivating factor
+for adding determinism to Linux.
+
+\iffalse
+Techniques exist to provide benefits
+in single areas, though these solutions do not "compose well with one another."
+Determinism by itself provides benefits in all four areas. Thus, we have a
+strong motivating factor for adding determinism to Linux.
+\fi
+
+The research presented and discussed in this thesis is based on Determinator.
+We adopt Aviram et al.'s operating system design to make Linux deterministic. We
+choose this approach since it enforces determinism from the kernel level using a
+straightforward syscall interface. This thesis also presents an accompanying
+user level C library, akin to the library utilities discussed by Aviram et al.
+This user library is intended to simplify writing user programs in C using
+familiar high level abstractions such as fork-join. We also provide an in memory
+file system, improving upon Arivam et al.'s in memory file system design.
+
+The section following this introduction gives background on Determinator and
+further motivates making Linux deterministic. The next section will describe
+design goals for this research project, followed by a discussion of challenges
+in accomplishing the goals. Then, we will discuss the actual implementation
+details of the kernel and user library work.
+
+In later sections, we evaluate deterministic Linux against legacy Linux and
+make some conclusions about Determinator's design in Linux compared to Linux's
+traditional multithreaded runtime. We will also discuss limitations and related
+work. Finally, we will begin to conclude by discussing the overall undergraduate
+research experience.
+\iffalse
+
+Nondeterministic inputs, such as scheduling order and data
+races, that should have no effect on determining a program's output no longer
+affect a Linux programs 
+only supports three syscalls
+ execution is a useful aspect of a computer program. Determinism
+means that for any fixed input, a program always returns the same output.
+Multithreaded programs inherently introduce mechanisms that make deterministic
+execution difficult, if not impossible. Deterministic execution is desirable,
+because it has debugging and security implications and makes reasoning about
+code correctness easier.
+
+Multithreaded programming introduces many sources of non-determinism, such as
+shared memory. Execution aspects, particularly scheduling of threads, of a
+parallel program depends on arbitrary data races, and these data races can
+manifest in unpredictable ways. Because these data races manifest unpreditably
+and rely on particular the particular hardware on which the software runs, bugs
+might not appear until a parallel progam is run on an end-user's machine making
+debugging all the more difficult.
+
+Conventional multi-threaded programming supports a "share everything" model.
+
+All threads concurrently access and write to shared memory, and threads share a
+common file system, threads are not required to explicitly synchronize or wait
+for other threads, and the preemptive multi-threading, threads may be scheduled
+arbitrarily.
+
+The Determinator OS took a novel approach for providing deterministic program
+execution: the OS enforces determinism on user-level programs through kernel
+mechanisms. User programs do not have direct access to hardware resources and
+are not permitted to share anything, including memory, without explicit
+operating system support (via syscalls).
+
+Determinator sought to provide a new programming model to counter the
+conventional multi-threaded model. The strongest guarantee of the new model
+is that Determinator is "deterministic by default." In other words, user-level
+programs cannot by any means, either intentional or unintentional, execute
+non-deterministically. Non-deterministic inputs, such as time of day or access
+to the shared file system, are made explicit. The kernel also requires threads
+to explicitly synchronize. Through these mechanisms, the Determinator model
+eliminates data races entirely.
+
+The goal of this thesis is to discuss the incorporation of the core ideas of
+Determinator into the Linux operating system. Next, this thesis will describe
+how the Linux kernel was modified to support a deterministic process model.
+Determinator also contributed a user-level programming library to support
+familiar APIs, such as pthreads and file system access; this thesis also
+presents an accompanying user library for Linux programs.
+
+\fi
+\endinput
+

@@ -1,0 +1,93 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{proposal}
+
+\usepackage{times}
+\usepackage[compact]{titlesec}
+\usepackage[square,comma,numbers,sort&compress]{natbib}
+
+\usepackage[breaklinks=true,
+	    pdfdisplaydoctitle=true,
+	    pdfborder={0 0 0},
+	    bookmarksnumbered=true,
+	    linktocpage,
+	    pdfpagelabels,
+	    pdfpagelayout=SinglePage,
+	    hyperfootnotes=false,
+	    letterpaper,
+	    ]{hyperref}
+
+
+\renewcommand{\ttdefault}{cmtt}
+
+\usepackage{ccaption}
+\captionnamefont{\small\selectfont}
+\captiontitlefont{\small\selectfont}
+\captiondelim{---}
+\renewcommand{\figurename}{Figure}
+
+\frenchspacing
+
+\newcommand{\threequartdash}{\hbox{--\kern-.25em--}}
+
+ \def\section{\@startsection{section}{1}{\z@}%
+ 	     {-2.5ex \@plus -0.8ex \@minus -.1ex}%
+ 	     {1ex \@plus .2ex}%
+ 	     {\normalfont\large\bfseries}}
+ \def\subsection{\@startsection{subsection}{2}{\z@}%
+ 	       {-2ex \@plus -0.8ex \@minus -.1ex}%
+ 	       {1ex \@plus .2ex}%
+ 	       {\normalfont\bfseries}}
+ \def\subsubsection{\@startsection{subsubsection}{3}{\z@}%
+ 	       {-2ex \@plus -1ex \@minus -.1ex}%
+ 	       {1ex \@plus .2ex}%
+ 	       {\normalfont\bfseries}}
+ \def\paragraph{\@startsection{paragraph}{4}{\z@}%
+ 	      {1.3ex \@plus .15ex \@minus .1ex}%
+ 	      {-.5\parindent}%
+ 	      {\normalfont\normalsize\bfseries}}
+
+\newcommand{\titlefont}{\fontsize{14}{17}\bfseries\selectfont}
+
+\global\def\@maketitle{%
+  \newpage
+  \null
+  \vskip -0.4in%
+  \null
+  \begin{center}%
+  \let \footnote \thanks
+    {\titlefont \@title \par}%
+    \vskip 2em%
+    {\normalsize
+      \lineskip .5em%
+      \begin{tabular}[t]{c}%
+        \@author
+      \end{tabular}\par}%
+    \vskip 2em%
+    {\large \@date}%
+  \end{center}%
+  \par
+  \vskip 1.5ex}
+%  \vskip 2ex}
+
+\usepackage[bottom,hang,multiple]{footmisc} % needs to go after setspace
+
+% dummy negative value to make 'hang' option above do the right thing
+\setlength{\footnotemargin}{-1em}         
+
+% make the footnote rule wider.
+\renewcommand\footnoterule{%
+  % \kern -3pt
+  % \hrule width \columnwidth height 1pt
+  \kern -1pt
+}
+
+% make the bibliography compact
+\let\oldthebibliography=\thebibliography
+\let\endoldthebibliography=\endthebibliography
+\renewenvironment{thebibliography}[1]{%
+  \begin{oldthebibliography}{#1}%
+  \setlength{\parskip}{0.7ex}%
+  \setlength{\itemsep}{0.7ex}%
+  }{%
+  \end{oldthebibliography}%
+}

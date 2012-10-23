@@ -1,0 +1,215 @@
+
+\section{Background}
+
+Writing correct parallel programms is difficult in the absense of determinism;
+this section motivates determinism by describing its benefits in software
+development, then describes the Determinator operating system.
+\iffalse
+Determinator's programming model is ``\emph{naturally} and
+\emph{pervasively} deterministic''~\cite{Aviram10}. This background section describes and
+motivates Determinator, then gives motivation for adding determinism to Linux.
+\fi
+
+\subsection{Motivation}
+
+Bergan et al. suggest there are four main benefits of deterministic execution in
+the following areas: debugging, fault tolerance, testing, and security. While
+there exist so called ``point solutions'' that solve problems in single areas at
+once, those solutions do not ``compose well with one another''~\cite{Bergan11}.
+Determinism solves problems in all four areas at once with a single mechanism.
+
+\paragraph{Debugging} Debugging multithreaded programs can be difficult since
+often bugs are not easily reproducible and tools such as {\tt gdb} are not
+always useful for tracking down heisenbugs~\cite{Musuvathi08}. Finding a bug's
+root cause becomes easier when a program's execution can be replayed over and
+over. Deterministic execution naturally provides replay debugging as a benefit.
+
+\paragraph{Fault tolerance} Fault tolerance through replication obviously relies
+on the assumption that running a program multiple times will always return the
+same output. Determinism again provides this benefit naturally.
+
+\paragraph{Testing} The difficulties in testing multithreaded applications are
+compounded by racy nondeterministic scheduling. Developers and automated test
+systems must consider the exponential blow up of possible scheduling sequences.
+Determinism helps alleviate this problem by guaranteeing a one-to-one
+correspondence between input and output. For each input, there is exactly one
+possible logical scheduling sequence of threads. Bergan et al. notes that this
+obvervation can help in designing test strategies~\cite{Bergan11}.
+
+Deterministic execution by itself it not as useful as the stronger guarantee of
+\emph{predictability}. Some deterministic environments provide synthesized and
+arbitrary schedulers~\cite{Aviram10,Devietti09}. These models do not allow one
+to reason about a program and determine the output beforehand, which makes
+designing tests difficult. The stronger claim of predictability allows for
+developers to design test suites that can accurately check a program's output.
+\iffalse
+need I say more? tie into Determinator?
+\fi
+
+\paragraph{Security} Processes sharing a CPU or other hardware should be
+conscious about leaking sensitive data. Covert timing channels can be exploited
+by a malicious thread to extract sensitive data from other
+threads~\cite{Aviram10cloud}. Determinism eliminates covert timing channels,
+since a program is purely a function of explicit inputs and cannot possible rely
+on the timings of hardware operations.
+
+\iffalse
+\begin{itemize}
+	\item Deterministic execution benefits, four main areas
+	\begin{itemize}
+		\item Debugging becomes easier, since bugs are always reproducible. Benefits
+			enhanced by Determinator’s predictability.
+		\item Testing: one-to-one mapping for inputs to outputs. Again, predictability
+			and modularity can simplify designing tests.
+		\item Fault tolerance
+		\item Security: covert channels
+	\end{itemize}
+	\item "Point solutions" in particular areas are unrelated to each other and do
+		not compose well. (Find point solutions to go into relevant work.)
+	\item Determinism is solution offering benefits in all areas at once.
+	\item Determinator’s design also provides predictability. Programmers can
+		reason about code without having to make assumptions: nothing is arbitrary.
+		"Program logic alone" determines how a program proceeds.
+	\item Linux is widely used, deployed on millions of machines. Potential for
+		uptake is very high if we can make the implementation reasonably easy to
+		patch.
+	\item Aviram compared Determinator to Linux, but we can compare deterministic
+		Linux to nondeterministic Linux for nearly optimal evaluation of this design.
+\end{itemize}
+\fi
+
+\subsection{Determinator}
+
+Aviram et al. set out to provide
+\begin{quote}
+a parallel environment that:
+(a) is ``deterministic by default,'' except when
+we inject nondeterminism explicitly via external inputs;
+(b) introduces no data races, either at the memory access level
+or at higher semantic levels; (c)
+can enforce determinism on arbitrary, compromised or
+malicious code for security reasons; and (d) is efﬁcient
+enough to use for ``normal-case'' execution of deployed
+code, not just for instrumentation during development. \cite{Aviram10}
+\end{quote}
+
+To this end, they present Determinator, a novel OS written from the ground up.
+First, Determinator identifies sources of nondeterminism, then defines a simple
+three syscall kernel interface, and finally recreates higher level programming
+abstractions from the low level syscalls.
+
+The primary cause of nondeterminism is data races introduced by timing
+dependencies. Each source must be accounted for in designing a deterministic
+programming model, and we discuss them here.
+
+\paragraph{Explicit Nondeterminism}
+Often, programs rely on nondeterministic inputs such as network packets, user
+input, or clock time. These inputs are essential to a program being useful;
+therefore, a deterministic programming model must incorporate these inputs while
+still enforcing determinism. Determinator addresses these ``semantically
+relevant'' inputs by turning them into explicit I/O~\cite{Aviram10}.
+Applications have complete control over these input sources and can even log the
+inputs for reply debugging.
+
+\paragraph{Shared program state}
+Traditional multithread programming models provide shared state: threads using
+the pthreads API share the entire memory state, and Linux's file system is
+shared by all running programs. Data races and incorrect synchronization lead
+to nondeterministic execution traces and often introduce unpredictable bugs
+
+Determinator eliminates data races caused by shared program state by eliminating
+shared state altogether. Threads operate using a private workspace model and
+synchronize program state at explicitly defined program points. When two or more
+threads begin executing, each has identical private virtual memory images.
+Writes to memory are not visible to other threads until the threads synchronize.
+
+\paragraph{Nondeterministic scheduling abstractions}
+Traditional multithreaded synchronization abstractions are often not
+deterministic or predictable. Random hardware races determine the next thread to
+acquire a mutex lock, and as mentioned before this has debugging and testing
+implications. Even though we can record lock acquisition sequences to replay
+program execution or use some arbitrary device to choose a deterministic
+sequence, the order of acquisition is not predictable. Determinator restricts
+itself to only allow naturally deterministic and predictable synchronization
+abstractions, such as fork-join.
+
+\paragraph{Globally shared namespaces}
+Operating systems introduce nondeterminism by using namespaces that are shared
+by the entire system. Process IDs returned by {\tt fork()} and files created
+by {\tt mktemp()} are examples. Since these identifiers are nondeterministic,
+and only the resource itself, not the identifier, is important for the
+application, Determinator does not allow the system to choose resource
+identifiers from globally shared namespaces. Since the identifier themselves
+are not relevant to an application, applications themselves choose identifiers
+deterministically.
+
+\subsection{The Determinator Kernel}
+
+Determinator organizes processes in a nested process model~\cite{Ford96}.
+Processes cannot outlive their parents and can only communicate with their
+parents and children. In line with the earlier discussion of nondeterminism,
+the kernel ``provides no file systems, writable shared memory, or other
+abstractions that imply globally shared state''~\cite{Aviram10}. Only ``the
+distinguished root [process] has direct access to nondeterministic
+inputs''~\cite{Aviram10}. All other processes must communicate directly or
+indirectly with the root process to access I/O devices.
+
+\begin{center}
+\begin{table*}[t]
+\centering
+\begin{tabular}{c | c | l}
+Call & Interacts with & Description \\
+\hline
+Put & Child & Copy register state and/or virtual memory range into child, and optionally start child executing. \\
+Get & Child & Copy register state, virtual memory range, and/or changes since the last snapshot out of a child. \\
+Ret & Parent & Stop and wait for parent to issue a Get or Put. Processor traps also cause implicit Ret. \\
+\end{tabular}
+\caption{System calls comprising Determinator’s kernel API.}
+\label{tab:syscalls}
+\end{table*}
+\end{center}
+
+\begin{center}
+\begin{table}[t]
+\begin{tabular}{c | c | c | l}
+Put & Get & Option & Description \\
+\hline
+X & X & Regs & PUT/GET child’s register state. \\
+X & X & Copy & Copy memory to/from child. \\
+X & X & Zero & Zero-fill virtual memory range. \\
+X &  & Snap & Snapshot child’s virtual memory. \\
+X &  & Start & Start child space executing. \\
+ & X & Merge & Merge child’s changes into parent. \\
+X & X & Perm & Set memory access permissions. \\
+X & X & Tree & Copy (grand)child subtree. \\
+\end{tabular}
+\caption{Options/arguments to the Put and Get calls.}
+\label{tab:options}
+\end{table}
+\end{center}
+
+\paragraph{Kernel Interface} Processes communicate with the kernel via three
+syscalls summarized in Table \ref{tab:syscalls}: {\tt Put}, {\tt Get}, and
+{\tt Ret}. {\tt Put} and {\tt Get} take parameters that specify various
+operations outlined in Table \ref{tab:options}.
+
+...obviously needs more content
+
+\subsection{Deterministic Linux}
+
+With Determinator's design presented, we can now motivate a deterministic
+Linux.
+Determinator was written from scratch in an academic environment with
+determinism as the main OS design goal. In some sense, Determinator is not a
+\emph{real} operating system, and the potential uptake outside the academic
+world is minimal. On the other hand, Linux is a mature and widely deployed
+nondeterministic operating system. Linux is installed on millions of systems
+including desktop computers, embedded systems, and mobile devices. In other
+words, Linux is a \emph{real} operating system used in the real world. By
+adding determinism to Linux, we are able to take advantage of the widespread
+use and adoption of Linux; the potential userbase for a deterministic LInux is
+much greater than that of Determinator. Furthermroe, we can evaluate
+Determinator's design in a real operating system.
+
+\endinput
+

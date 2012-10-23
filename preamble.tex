@@ -1,0 +1,172 @@
+% ORGANIZATION OF THE PREAMBLE
+\usepackage{tabularx}           % more table control
+% \usepackages
+% definitions for editing marks
+% document-specific crap
+
+\usepackage[pdftex]{graphicx}   % allow graphics
+\usepackage{subfigure}          % allow sub-figures
+\usepackage{booktabs}           % pretty tables
+\usepackage{dcolumn}            % align decimal points
+\usepackage{multirow}           % for tables
+%\usepackage{arydshln}           % allow dashed lines in tables
+\usepackage{rotating}           % allow rotated text 
+\usepackage{xspace}             % define commands that don't eat space
+\usepackage{hyphenat}           % supplies \hyp{}, which tells tex that it can 
+		                % hyphenate at an existing hyphen
+\usepackage{enumerate}          % more control over enumerates 
+\usepackage{dblfloatfix}        % tame those floats
+\usepackage{lastpage}           % allow the last page to be referenced
+\usepackage{pifont}             % dingbat fonts
+\usepackage[normalem]{ulem}     % included for strike-out {\sout X}
+\usepackage[table]{xcolor}      % color, for editing marks.
+\usepackage{colortbl}           % colorful columns and rows
+\usepackage{array}              % needed for 'b' argument in tabular preamble
+\usepackage{tabularx}           % more table control
+%\usepackage[noeka]{mathrmletter}% Eddie Kohler's mathrm
+
+% pretty algorithms
+%\usepackage[noend]{algpseudocode}
+%\algrenewcomment[1]{\hfill// #1}%   % don't include end-block syntax
+
+% AMS stuff, so we have no surprises when we use math
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+
+% peanut gallery comments
+% NOTE: Comment out no editing marks line in the main .ltx 
+%
+%\newcommand{\textred}[1]{\textcolor{red}{#1}}
+\newcommand{\textred}[1]{\begingroup \color{red} #1\endgroup}
+\ifx\noeditingmarks\undefined%
+   \newcommand{\pgwrapper}[2]{\textred{#1: #2}}
+   \newcommand{\pgwrapperb}[1]{\textbf{#1}}
+\else%
+   \newcommand{\pgwrapperb}[1]{}
+   \newcommand{\pgwrapper}[2]{}
+\fi%
+
+\newcommand{\jbl}[1]{\pgwrapper{JBL}{#1}}
+\newcommand{\mw}[1]{\pgwrapper{MW}{#1}}
+% end peanut gallery comments
+
+\ifx\noeditingmarks\undefined%
+    \newcommand{\changebars}[2]{%
+    [{\em \begingroup \color{magenta} #1 \endgroup}]
+    [\begingroup \color{magenta} \sout{#2} \endgroup]}
+\else%
+    \newcommand{\changebars}[2]{#1}
+\fi%
+
+\newcommand{\goodcitationsize}{\fontsize{8}{9.6}\selectfont}
+\newcommand{\annoyingsize}{\fontsize{7.5}{9}\selectfont}
+\newcommand{\moreannoyingsize}{\fontsize{7.3}{8.8}\selectfont}
+\newcommand{\acmgarbagesize}{\fontsize{7.5}{9}\selectfont}
+
+% definitions for MP
+\def\hn{\usefont{OT1}{phv}{mc}{n}\selectfont}
+\def\hb{\usefont{OT1}{phv}{bc}{n}\selectfont}
+\def\hv{\usefont{OT1}{phv}{m}{n}\selectfont}
+\newcommand{\mpfont}{\hn\scriptsize}
+\newcommand{\MPworker}[2]{{\color{#1}\vrule\vrule}{\marginpar{\color{#1}\mpfont%
+                           #2}}}
+\ifx\noeditingmarks\undefined%
+    \newcommand{\MP}[1]{\MPworker{blue}{#1}}
+    \newcommand{\MPjbl}[1]{\MPworker{red}{#1}}
+\else%
+   \newcommand{\MP}[1]{}
+    \newcommand{\MPjbl}[1]{}
+\fi%
+\setlength{\marginparwidth}{17mm}
+\setlength{\marginparsep}{0.35mm}
+
+\newcommand\rmv[1]{}
+
+\def\t{\textit}
+\def\as{\leftarrow}
+
+\newcommand{\citepaxosusers}{\cite{burrows06chubby,john08consensus,%
+                                   chandra07paxos,zookeeper,lee96petal,%
+                                   stribling09flexible,boxwood,bolosky11paxos}}
+
+\newcommand{\circledone}{\ding{192}\xspace}
+\newcommand{\circledtwo}{\ding{193}\xspace}
+\newcommand{\circledthree}{\ding{194}\xspace}
+\newcommand{\circledfour}{\ding{195}\xspace}
+\newcommand{\circledfive}{\ding{196}\xspace}
+\newcommand{\filledone}{\ding{202}\xspace}
+\newcommand{\filledtwo}{\ding{203}\xspace}
+\newcommand{\filledthree}{\ding{204}\xspace}
+\newcommand{\filledfour}{\ding{205}\xspace}
+\newcommand{\filledfive}{\ding{206}\xspace}
+
+\newcommand{\cpu}{\textsc{cpu}\xspace}
+\newcommand{\usec}{$\mu\mathrm{s}$}
+
+\newcommand{\so}{\mbox{F-alive}\xspace}
+\newcommand{\si}{\mbox{F-crash}\xspace}
+\newcommand{\sii}{\mbox{F-cong}\xspace}
+\newcommand{\siii}{\mbox{F-route}\xspace}
+\newcommand{\siv}{\mbox{F-part}\xspace}
+
+\def\compactify{\itemsep0in \topsep2pt \parsep=0.00in \partopsep=0pt \leftmargin4em}
+\let\latexusecounter=\usecounter
+
+\newenvironment{CompactItemize}%
+  {\def\usecounter{\compactify\latexusecounter}%
+   \begin{itemize}}%
+  {\end{itemize}\let\usecounter=\latexusecounter}%
+\newenvironment{CompactEnumerate}%
+  {\def\usecounter{\compactify\latexusecounter}%
+   \begin{enumerate}}%
+  {\end{enumerate}\let\usecounter=\latexusecounter}
+
+\newenvironment{myenumerate}%
+  {\def\usecounter{\compactify\latexusecounter}%
+   \begin{enumerate}}%
+  {\end{enumerate}\let\usecounter=\latexusecounter}
+
+\newenvironment{myitemize}%
+  {\begin{list}%
+    {\labelitemi}{\itemsep0in \topsep2pt \parsep0.00in \partopsep=0pt \leftmargin\parindent}}%
+  {\end{list}}
+
+\newenvironment{myenumerate2}%
+  {\def\usecounter{\itemsep=0ex \topsep1ex \parsep=1ex \partopsep=0pt \leftmargin\parindent\latexusecounter}%
+   \begin{enumerate}}%
+  {\end{enumerate}\let\usecounter=\latexusecounter}
+
+\newenvironment{myenumerate3}%
+  {\def\usecounter{\itemsep0pt \topsep0pt \parsep=0ex \partopsep=0pt \leftmargin\parindent\latexusecounter}%
+   \begin{enumerate}}%
+  {\end{enumerate}\let\usecounter=\latexusecounter}
+
+\newenvironment{myitemize2}%
+  {\begin{list}%
+    {\labelitemi}{\itemsep6pt \topsep6pt \parsep0.00in \partopsep=0pt \leftmargin\parindent}}%
+  {\end{list}}
+
+\newenvironment{myitemize3}%
+  {\begin{list}{\labelitemi}{\itemsep3pt \topsep3pt \parsep0.00in
+  \partopsep=0pt \leftmargin\parindent}}%
+  {\end{list}}
+
+\newenvironment{myitemize4}%
+  {\begin{list}{\labelitemi}{\itemsep0in \topsep2pt \parsep0.00in \partopsep=0pt \leftmargin\parindent}}%
+  {\end{list}}
+
+%\def\emparagraph#1{\vspace{0.7mm}\noindent{\bf #1}}
+\def\emparagraph#1{\paragraph{#1}}
+
+\newcommand{\astskip}{\smallskip\noindent\parbox{\linewidth}
+			{\center*\hspace{2.5em}*\hspace{2.5em}*\medskip\smallskip}}
+
+\def\discretionaryslash{\discretionary{/}{}{/}}
+{\catcode`\/\active%
+\gdef\URLprepare{\catcode`\/\active\let/\discretionaryslash
+        \def~{\char`\~}}}%
+\def\URL{\bgroup\URLprepare\realURL}%
+\def\realURL#1{\tt #1\egroup}%
+
+\newcommand{\tmidrule}{\midrule[0.02em]}

@@ -1,0 +1,43 @@
+%\def\noeditingmarks{}  % comment out this line to have editing marks
+\documentclass[10pt,twocolumn]{article}
+\usepackage{proposal}
+\input{preamble}
+
+% one inch margins
+\usepackage[top=1in,bottom=1in,left=1in,right=1in]{geometry}
+
+\begin{document}
+
+\date{} % No title.
+\title{\large \bf Enforced Deterministic Program Execution in the Linux Kernel}
+
+\author{
+{\rm Chris Cotter}\\
+University of Texas
+}
+
+\maketitle
+
+%\input{titlepage}
+\input{intro} 
+\input{background}
+\input{overview}
+\input{details}
+\input{conclusion}
+\vspace*{-1em}
+\bigskip
+
+%\annoyingsize{%
+%\goodcitationsize{%
+\footnotesize{%
+%\scriptsize{%
+\begin{flushleft}
+\setlength{\parskip}{0pt}
+\setlength{\itemsep}{0pt}
+\bibliographystyle{abbrv}
+%\bibliography{conferences-long-with-abbr,proposal}
+\bibliography{proposal}
+\end{flushleft}
+}
+\label{p:last}
+\end{document}
