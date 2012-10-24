@@ -1,0 +1,9 @@
+*.scm
+*.css
+*.html
+*.hlog
+*.dvi
+*.log
+*.out
+*.aux
+*.blg
