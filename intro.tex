@@ -2,34 +2,44 @@
 \label{s:intro}
 
 This thesis describes adding kernel enforced deterministic program execution to
-Linux. In our solution, at a high level, programs enter a \emph{deterministic}
+Linux. We describe the challenges, design, implementation, and evaluation of
+a deterministic Linux.
+In our solution, at a high level, programs enter a \emph{deterministic}
 mode where the kernel provides a very restricted subset of syscalls designed to
-enforce determinism. The kernel enforces determinism, thus making it impossible
-for user programs to possibly behave nondeterinistically, even by deliberate
+enforce determinism.
+\iffalse
+The kernel enforces determinism, thus making it impossible
+for user programs to possibly behave nondeterministically, even by deliberate
 design. Internal nondeterministic inputs like hardware data races are entirely
 eliminated, and explicitly nondeterministic inputs like user input or time of
 day become controllable explicit I/O.
+\fi
 
 \iffalse
 A program is deterministic if for a fixed input, the program always returns the
-same ouput. This is desirable, because it simplifies testing and debugging of
-ever more ubiquitous parallel progams. Linux's parallel programming model is
+same output. This is desirable, because it simplifies testing and debugging of
+ever more ubiquitous parallel programs. Linux's parallel programming model is
 inherently nondeterministic, but having the option to run deterministically
 would be a great feature as computing moves towards using multiple cores.
 \fi
 
-Nondeterministic parallel programming is difficult: nondeterministic inputs,
-such as data races, force programmers to use difficult to reason about
-synchronization primatives such as semaphores and condition variables.
-Misuse of these primatives can lead to buggy code and deadlock. Even
-correct use cannot guarantee deterministic execution: conventional
-synchronization primatives are not predictable. This has debugging, testing,
-and security implications.
+Nondeterministic parallel programming is difficult~\cite{lee2006problem}. Thus,
+our work is motivated by the difficulties of parallel programming in the
+presence of nondeterminism.
+Data races and other nondeterministic inputs force programmers to use
+difficult to reason about synchronization primitives like semaphores and
+condition variables. Misuse of these primitives can lead to buggy code and
+deadlock. Even correct use cannot guarantee deterministic execution:
+conventional synchronization primitives are not predictable~\cite{Aviram10}.
 
 Deterministic execution overcomes the challenges of nondeterminism, and
 according to Bergan et al. it provides benefits in four main areas: debugging,
-fault tolerance, testing, and security. Thus, we have a strong motivating factor
-for adding determinism to Linux.
+fault tolerance, testing, and security~\cite{Bergan11}. We demonstrate the
+debugging benefits by discussing a buggy LU factorization program: whereas a
+critical bug manifests only \emph{sometimes} running with nondeterministic
+pthreads, deterministic Linux exhibits the critical bug every time the program
+runs. Because of this, finding and eliminating the bug becomes much easier. We
+elaborate on Bergan's four benefits in a subsequent discussion.
 
 \iffalse
 Techniques exist to provide benefits
@@ -38,15 +48,57 @@ Determinism by itself provides benefits in all four areas. Thus, we have a
 strong motivating factor for adding determinism to Linux.
 \fi
 
-The research presented and discussed in this thesis is based on Determinator.
-We adopt Aviram et al.'s operating system design to make Linux deterministic. We
+The research presented in this thesis is based on Determinator~\cite{Aviram10}.
+We adapt Aviram et al.'s operating system design to make Linux deterministic. We
 choose this approach since it enforces determinism from the kernel level using a
-straightforward syscall interface. This thesis also presents an accompanying
+straightforward syscall interface, and we are able to write programs using
+popular general purposes programming languages like C.
+
+This thesis makes the following contributions:
+
+\begin{itemize}
+    \item A presentation of a deterministic Linux kernel heavily based on that
+    of the Determinator kernel. This is the first known adaptation of
+    Determinator's kernel design in a \emph{real} operating system.
+    \item A deterministic high level user library for use by application
+    programmers. This library is motivated by Determinator's user library and
+    the usefulness developing programs using an API similar to that of the
+    standard C library.
+    \item An improvement of Determinator's in-memory file system. Our file
+    system is modeled off of the BSD Fast File System~\cite{mckusick1984fast},
+    and it provides persistence.
+    \item We evaluate the performance of deterministic Linux against traditional
+    nondeterministic parallel Linux. We also demonstrate a case study of the
+    benefits of determinism.
+\end{itemize}
+
+\iffalse
+This thesis also presents an accompanying
 user level C library, akin to the library utilities discussed by Aviram et al.
 This user library is intended to simplify writing user programs in C using
 familiar high level abstractions such as fork-join. We also provide an in memory
 file system, improving upon Arivam et al.'s in memory file system design.
+\fi
 
+The rest of this thesis discusses what makes developing with nondeterminism
+difficult and why deterministic execution desirable. We then present Aviram et
+al.'s Determinator kernel design in detail, as well as the challenges
+Determinator had to overcome. We then motivate adding determinism to a
+\emph{real} operating system.
+
+Next, we present our design goals for our work, centering our our desire to add
+kernel enforced determinism to the Linux kernel. We discuss the challenges of
+adding determinism to an inherently nondeterministic kernel, and then we present
+a high level design of our system.
+
+With that in mind, we go into the details of how we actually made Linux
+deterministic; we discuss the specific implementation details of what we changed
+in the Linux kernel, and we also describe building a user library based on the
+new kernel API. We then evaluate the performance of applications running on
+deterministic Linux and compare the results to the equivalent applications
+using conventional nondeterministic Linux.
+
+\iffalse
 The section following this introduction gives background on Determinator and
 further motivates making Linux deterministic. The next section will describe
 design goals for this research project, followed by a discussion of challenges
@@ -58,7 +110,6 @@ make some conclusions about Determinator's design in Linux compared to Linux's
 traditional multithreaded runtime. We will also discuss limitations and related
 work. Finally, we will begin to conclude by discussing the overall undergraduate
 research experience.
-\iffalse
 
 Nondeterministic inputs, such as scheduling order and data
 races, that should have no effect on determining a program's output no longer
