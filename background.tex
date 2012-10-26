@@ -1,22 +1,90 @@
 
 \section{Background}
 
-Writing correct parallel programms is difficult in the absense of determinism;
-this section motivates determinism by describing its benefits in software
-development, then describes the Determinator operating system.
+Computer architects are under increasing pressure to produce multicore
+processors: the doubling of transistors every 18 months, or Moore's law, no
+longer implies increasing processor clock speeds. Rather, processors
+increasingly have more cores, with clock rates holding
+steady~\cite{bandwidth2005multicore}. The multicore revolution is shifting
+program development from a sequential to parallel paradigm.
+
+Many parallel applications are written in the conventional nondeterministic
+threading model. Features like shared memory state are attractive, since they
+facilitate easy application development. Unfortunately, writing correct parallel
+programs in this environment is hard, particularly due to nondeterminism.
+
+Anyone who has written a multithreaded
+application using the conventional threading model is familiar with the
+drawbacks. Data races, both low and especially high level, introduce bugs that
+often must be solved with difficult to reason about lock abstractions.
+Nondeterministic, or even arbitrarily deterministic, scheduling of threads again
+introduces bugs and complicates reasoning about the program output.
+
+As more applications become parallel, we do not want a degradation in code
+quality. Lee points out problems with the conventional threading model, and he
+would like to do away with it~\cite{lee2006problem}. What we would like,
+then, is a new programming model that limits or eliminates the potential for
+writing programs of poor quality. Bocchino et al. make the case that all
+parallel programs should be written using a mode that is ``deterministic by
+default''~\cite{bocchino2009parallel}.
+
 \iffalse
-Determinator's programming model is ``\emph{naturally} and
-\emph{pervasively} deterministic''~\cite{Aviram10}. This background section describes and
-motivates Determinator, then gives motivation for adding determinism to Linux.
+\paragraph{Determinism}
+\fi
+A program's output is a function of its inputs, explicit and implicit.
+We say an input is explicit if it is semantically relevant to the program's
+output. We consider an input that is irrelevant to the program's intended goal,
+but nonetheless influences program output, to be implicit. In most cases,
+implicit inputs are random, arbitrary, and uncontrollable; Timing dependencies,
+quantum size, and cache size are examples~\cite{Bergan11}.
+
+Since implicit inputs by definition are irrelevant, we would like programs to be
+functions of only explicit inputs. We call such programs \emph{deterministic}.
+Running a deterministic program on the same input will always generate the same
+output, regardless of implicit inputs. Programs whose output depends on
+implicit inputs are considered nondeterministic.
+
+Olszewski et al. characterize determinism into two categories: strong and weak
+determinism~\cite{olszewski2009kendo}. \emph{Strong determinism} guarantees a
+deterministic order of memory operations for a fixed program input and thus
+always provides deterministic execution. \emph{Weak determinism} only guarantees
+a deterministic order of lock acquisitions. Weak determinism only provides
+deterministic execution when a program is written free of data races.
+
+\iffalse
+\paragraph{A New Programming Model}
+\fi
+
+\iffalse
+
+Parallel programming languages, like DPJ~\cite{bocchino2009type}, provide
+deterministic execution; however, since these languages require rewriting
+existing programs and have limited potential for wide uptake, we shall not
+consider such systems. We also will not consider systems that require
+specialized hardware, again due to their limited availability. We would like
+a deterministic environment that runs on standard computer hardware written in
+popular, convention programming languages like C.
+
+We focus on systems that run programs deterministically written in conventional
+languages, like C. Kendo is a weakly deterministic runtime
+library~\cite{olszewski2009kendo} for C++ applications.
+CoreDet\~cite{bergan2010coredet} provides strong determinism via a compiler
+and runtime library.
+
+Even though we consider some inputs to be nondeterministic (like
+{\tt gettimeofday()}), these inputs are often semantically relevant to a
+program. Thus, we focus our efforts on nondeterministic implicit inputs.
+
+Explicit inputs are what program
+
 \fi
 
 \subsection{Motivation}
 
-Bergan et al. suggest there are four main benefits of deterministic execution in
-the following areas: debugging, fault tolerance, testing, and security. While
-there exist so called ``point solutions'' that solve problems in single areas at
-once, those solutions do not ``compose well with one another''~\cite{Bergan11}.
-Determinism solves problems in all four areas at once with a single mechanism.
+Determinism provides many benefits to application
+developers~\cite{Bergan11,olszewski2009kendo,bocchino2009parallel}. Bergan et
+al. suggest there are four main benefits in
+the following areas: debugging, fault tolerance, testing, and security.
 
 \paragraph{Debugging} Debugging multithreaded programs can be difficult since
 often bugs are not easily reproducible and tools such as {\tt gdb} are not
@@ -34,7 +102,7 @@ systems must consider the exponential blow up of possible scheduling sequences.
 Determinism helps alleviate this problem by guaranteeing a one-to-one
 correspondence between input and output. For each input, there is exactly one
 possible logical scheduling sequence of threads. Bergan et al. notes that this
-obvervation can help in designing test strategies~\cite{Bergan11}.
+observation can help in designing test strategies~\cite{Bergan11}.
 
 Deterministic execution by itself it not as useful as the stronger guarantee of
 \emph{predictability}. Some deterministic environments provide synthesized and
@@ -52,6 +120,17 @@ by a malicious thread to extract sensitive data from other
 threads~\cite{Aviram10cloud}. Determinism eliminates covert timing channels,
 since a program is purely a function of explicit inputs and cannot possible rely
 on the timings of hardware operations.
+\\
+
+There do
+exist so called ``point solutions'' that solve problems in single areas at once.
+Record and replay debuggers, like Leblanc et al.'s {\tt Instant Replay} system,
+aid in debugging parallel programs by logging scheduling sequences and
+other relevant interactions in order to replay an execution sequence exactly.
+However, these debuggers are costly in terms of storage and performance.
+Moreover, these ``point solutions...do not compose well with one
+another''~\cite{Bergan11}. Determinism provides benefits in all four areas at
+once with a single mechanism.
 
 \iffalse
 \begin{itemize}
@@ -94,9 +173,10 @@ code, not just for instrumentation during development. \cite{Aviram10}
 \end{quote}
 
 To this end, they present Determinator, a novel OS written from the ground up.
-First, Determinator identifies sources of nondeterminism, then defines a simple
-three syscall kernel interface, and finally recreates higher level programming
-abstractions from the low level syscalls.
+For most of the remainder of this section, we will give details Aviram et al.'s
+work and contributions; first we will discuss aspects that influenced
+Determinator's design. Then, we will look at the actual kernel design itself
+and the accompanying user library.
 
 The primary cause of nondeterminism is data races introduced by timing
 dependencies. Each source must be accounted for in designing a deterministic
