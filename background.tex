@@ -20,23 +20,23 @@ often must be solved with difficult to reason about lock abstractions.
 Nondeterministic, or even arbitrarily deterministic, scheduling of threads again
 introduces bugs and complicates reasoning about the program output.
 
-As more applications become parallel, we do not want a degradation in code
-quality. Lee points out problems with the conventional threading model, and he
-would like to do away with it~\cite{lee2006problem}. What we would like,
-then, is a new programming model that limits or eliminates the potential for
-writing programs of poor quality. Bocchino et al. make the case that all
-parallel programs should be written using a mode that is ``deterministic by
-default''~\cite{bocchino2009parallel}.
+Lee points out problems with the conventional threading model, and he
+would like to do away with it~\cite{lee2006problem}. As more applications
+become parallel, we do not want a degradation in code quality. What we would
+like, then, is a new programming model that limits or eliminates the possibility
+of buggy writing programs. In search of a solution, Bocchino et al. make the
+case that all parallel programs should be written using a programming model that
+is ``deterministic by default''~\cite{bocchino2009parallel}.
 
 \iffalse
 \paragraph{Determinism}
 \fi
-A program's output is a function of its inputs, explicit and implicit.
-We say an input is explicit if it is semantically relevant to the program's
-output. We consider an input that is irrelevant to the program's intended goal,
-but nonetheless influences program output, to be implicit. In most cases,
-implicit inputs are random, arbitrary, and uncontrollable; Timing dependencies,
-quantum size, and cache size are examples~\cite{Bergan11}.
+In general, a program's output is a function of its inputs, both explicit and
+implicit. We say an input is explicit if it is semantically relevant to the
+program's output. We consider an input that is irrelevant to the program's
+intended goal, but nonetheless influences program output, to be implicit. In
+most cases, implicit inputs are random, arbitrary, and uncontrollable; timing
+dependencies, quantum size, and cache size are examples~\cite{Bergan11}.
 
 Since implicit inputs by definition are irrelevant, we would like programs to be
 functions of only explicit inputs. We call such programs \emph{deterministic}.
@@ -44,12 +44,14 @@ Running a deterministic program on the same input will always generate the same
 output, regardless of implicit inputs. Programs whose output depends on
 implicit inputs are considered nondeterministic.
 
-Olszewski et al. characterize determinism into two categories: strong and weak
-determinism~\cite{olszewski2009kendo}. \emph{Strong determinism} guarantees a
+Olszewski et al. characterize determinism into two categories: strong and
+weak~\cite{olszewski2009kendo}. \emph{Strong determinism} guarantees a
 deterministic order of memory operations for a fixed program input and thus
 always provides deterministic execution. \emph{Weak determinism} only guarantees
-a deterministic order of lock acquisitions. Weak determinism only provides
-deterministic execution when a program is written free of data races.
+a deterministic order of lock acquisitions. Weak determinism provides
+deterministic execution only when a program is written free of data races. In
+the presence of racy data unprotected by a lock, weakly deterministic systems
+fail to execute deterministically.
 
 \iffalse
 \paragraph{A New Programming Model}
@@ -61,9 +63,9 @@ Parallel programming languages, like DPJ~\cite{bocchino2009type}, provide
 deterministic execution; however, since these languages require rewriting
 existing programs and have limited potential for wide uptake, we shall not
 consider such systems. We also will not consider systems that require
-specialized hardware, again due to their limited availability. We would like
-a deterministic environment that runs on standard computer hardware written in
-popular, convention programming languages like C.
+specialized hardware like DMP~\cite{Devietti09}.
+We would like a deterministic environment that runs on standard
+computer hardware written in popular, convention programming languages like C.
 
 We focus on systems that run programs deterministically written in conventional
 languages, like C. Kendo is a weakly deterministic runtime
@@ -75,8 +77,6 @@ Even though we consider some inputs to be nondeterministic (like
 {\tt gettimeofday()}), these inputs are often semantically relevant to a
 program. Thus, we focus our efforts on nondeterministic implicit inputs.
 
-Explicit inputs are what program
-
 \fi
 
 \subsection{Motivation}
@@ -86,8 +86,8 @@ developers~\cite{Bergan11,olszewski2009kendo,bocchino2009parallel}. Bergan et
 al. suggest there are four main benefits in
 the following areas: debugging, fault tolerance, testing, and security.
 
-\paragraph{Debugging} Debugging multithreaded programs can be difficult since
-often bugs are not easily reproducible and tools such as {\tt gdb} are not
+\paragraph{Debugging} Debugging multithreaded programs can be difficult, because
+often bugs are not easily reproducible, and tools such as {\tt gdb} are not
 always useful for tracking down heisenbugs~\cite{Musuvathi08}. Finding a bug's
 root cause becomes easier when a program's execution can be replayed over and
 over. Deterministic execution naturally provides replay debugging as a benefit.
@@ -101,36 +101,45 @@ compounded by racy nondeterministic scheduling. Developers and automated test
 systems must consider the exponential blow up of possible scheduling sequences.
 Determinism helps alleviate this problem by guaranteeing a one-to-one
 correspondence between input and output. For each input, there is exactly one
-possible logical scheduling sequence of threads. Bergan et al. notes that this
-observation can help in designing test strategies~\cite{Bergan11}.
+possible logical scheduling sequence of threads. This observation eliminates the
+need to consider what scheduling interactions can occur, and ultimately helps
+developers design test strategies~\cite{Bergan11}.
 
-Deterministic execution by itself it not as useful as the stronger guarantee of
-\emph{predictability}. Some deterministic environments provide synthesized and
-arbitrary schedulers~\cite{Aviram10,Devietti09}. These models do not allow one
-to reason about a program and determine the output beforehand, which makes
-designing tests difficult. The stronger claim of predictability allows for
-developers to design test suites that can accurately check a program's output.
-\iffalse
-need I say more? tie into Determinator?
-\fi
+In addition to explicit inputs, schedule sequences are affected by implicit
+inputs like quantum size, data races, and memory ownership granularity.
+Deterministic systems like Kendo~\cite{olszewski2009kendo} and
+DMP~\cite{Devietti09} are especially dependent on quantum size~\cite{Bergan11}.
+In other words, these systems provide deterministic execution, but the
+scheduling sequence is still a function of implicit inputs.
+
+On the other hand, Determinator's programming model provides something stronger
+than determinism: \emph{predictability}. Whereas systems like DMP seek to
+``control, detect, or reproduce'' data races, Determinator's programming model
+is \emph{naturally deterministic}: it avoids ``introducing data races or other
+nondeterministic behavior in the first place''~\cite{Aviram10}. With
+predictability, programmers can reason about every relevant aspect of a program,
+including scheduling. Determinism, and the stronger property of predictability,
+thus make testing applications easier.
 
 \paragraph{Security} Processes sharing a CPU or other hardware should be
-conscious about leaking sensitive data. Covert timing channels can be exploited
-by a malicious thread to extract sensitive data from other
+conscious about leaking sensitive data. A malicious thread can exploit covert
+timing channels to extract sensitive data from other, perhaps privileged,
 threads~\cite{Aviram10cloud}. Determinism eliminates covert timing channels,
 since a program is purely a function of explicit inputs and cannot possible rely
-on the timings of hardware operations.
+subtly on the timings of hardware operations.
 \\
 
-There do
-exist so called ``point solutions'' that solve problems in single areas at once.
-Record and replay debuggers, like Leblanc et al.'s {\tt Instant Replay} system,
-aid in debugging parallel programs by logging scheduling sequences and
+To further motivate determinism, we consider systems that solve that above
+problems. So called ``point solutions'' solve in problems in single areas at
+once. Record and replay debuggers, like Leblanc et al.'s {\tt Instant Replay}
+system, aid in debugging parallel programs by logging scheduling sequences and
 other relevant interactions in order to replay an execution sequence exactly.
 However, these debuggers are costly in terms of storage and performance.
-Moreover, these ``point solutions...do not compose well with one
-another''~\cite{Bergan11}. Determinism provides benefits in all four areas at
-once with a single mechanism.
+\iffalse Even with replay ability, the execution sequence is still arbitrary and
+gives the programmer no intuition about the program's behavior. \fi
+In general, these ``point solutions...do not compose well with one
+another''~\cite{Bergan11}. On the other hand, determinism provides benefits in
+all four areas at once with a single mechanism.
 
 \iffalse
 \begin{itemize}
@@ -172,15 +181,16 @@ enough to use for ``normal-case'' execution of deployed
 code, not just for instrumentation during development. \cite{Aviram10}
 \end{quote}
 
-To this end, they present Determinator, a novel OS written from the ground up.
-For most of the remainder of this section, we will give details Aviram et al.'s
+To this end, they presented Determinator, a novel OS written from the ground up.
+For most of the remainder of this section, we will recapitulate Aviram et al.'s
 work and contributions; first we will discuss aspects that influenced
 Determinator's design. Then, we will look at the actual kernel design itself
 and the accompanying user library.
 
 The primary cause of nondeterminism is data races introduced by timing
-dependencies. Each source must be accounted for in designing a deterministic
-programming model, and we discuss them here.
+dependencies. Each source of implicit nondeterminism must be accounted for in
+designing a deterministic programming model. We discuss them here, and describe
+how Determinator handles them.
 
 \paragraph{Explicit Nondeterminism}
 Often, programs rely on nondeterministic inputs such as network packets, user
@@ -195,7 +205,7 @@ inputs for reply debugging.
 Traditional multithread programming models provide shared state: threads using
 the pthreads API share the entire memory state, and Linux's file system is
 shared by all running programs. Data races and incorrect synchronization lead
-to nondeterministic execution traces and often introduce unpredictable bugs
+to nondeterministic execution traces and often introduce unpredictable bugs.
 
 Determinator eliminates data races caused by shared program state by eliminating
 shared state altogether. Threads operate using a private workspace model and
@@ -204,8 +214,8 @@ threads begin executing, each has identical private virtual memory images.
 Writes to memory are not visible to other threads until the threads synchronize.
 
 \paragraph{Nondeterministic scheduling abstractions}
-Traditional multithreaded synchronization abstractions are often not
-deterministic or predictable. Random hardware races determine the next thread to
+Traditional multithreaded synchronization abstractions are often neither
+deterministic nor predictable. Random hardware races determine the next thread to
 acquire a mutex lock, and as mentioned before this has debugging and testing
 implications. Even though we can record lock acquisition sequences to replay
 program execution or use some arbitrary device to choose a deterministic
@@ -217,11 +227,10 @@ abstractions, such as fork-join.
 Operating systems introduce nondeterminism by using namespaces that are shared
 by the entire system. Process IDs returned by {\tt fork()} and files created
 by {\tt mktemp()} are examples. Since these identifiers are nondeterministic,
-and only the resource itself, not the identifier, is important for the
-application, Determinator does not allow the system to choose resource
-identifiers from globally shared namespaces. Since the identifier themselves
-are not relevant to an application, applications themselves choose identifiers
-deterministically.
+and only the resource itself, not the identifier, is semantically relevant to
+the application, Determinator disallows the system from choosing resource
+identifiers from globally shared namespaces. Instead, applications themselves
+choose identifiers deterministically.
 
 \subsection{The Determinator Kernel}
 
@@ -229,10 +238,11 @@ Determinator organizes processes in a nested process model~\cite{Ford96}.
 Processes cannot outlive their parents and can only communicate with their
 parents and children. In line with the earlier discussion of nondeterminism,
 the kernel ``provides no file systems, writable shared memory, or other
-abstractions that imply globally shared state''~\cite{Aviram10}. Only ``the
+abstractions that imply globally shared state''. Only ``the
 distinguished root [process] has direct access to nondeterministic
-inputs''~\cite{Aviram10}. All other processes must communicate directly or
-indirectly with the root process to access I/O devices.
+inputs''~\cite{Aviram10}. It is through this root process that explicitly
+nondeterministic inputs can be controlled. All other processes must communicate
+directly or indirectly with the root process to access I/O devices.
 
 \begin{center}
 \begin{table*}[t]
@@ -269,27 +279,56 @@ X & X & Tree & Copy (grand)child subtree. \\
 \end{center}
 
 \paragraph{Kernel Interface} Processes communicate with the kernel via three
-syscalls summarized in Table \ref{tab:syscalls}: {\tt Put}, {\tt Get}, and
-{\tt Ret}. {\tt Put} and {\tt Get} take parameters that specify various
-operations outlined in Table \ref{tab:options}.
+syscalls, {\tt Put}, {\tt Get}, {\tt Ret}. Table \ref{tab:syscalls} and Table
+\ref{tab:options}, reproduced from~\cite{Aviram10}, summarize how the syscalls
+work and the options available to {\tt Put} and {\tt Get}.
 
-...obviously needs more content
+Determinator enforces a deterministic schedule by requiring programs to
+explicitly define synchronization points; this mechanism is described here.
+Since the kernel does not manage any global namespaces, user programs specify
+a child process ID parameter to {\tt Put} and {\tt Get}. The first {\tt Put}
+syscall with a previously unused child ID creates a new child process.
+{\tt Put} calls can start a child's execution, and the child will continue to
+execute until it invokes {\tt Ret} or generates a processor exception (e.g.
+divide by zero). {\tt Put} and {\tt Get} calls block until the child process
+stops.
+
+Process state is composed of register state and its entire virtual memory.
+The Regs option copies register state from a parent to child or vice versa.
+Determinator provides more sophisticated virtual memory options: the Zero
+option zeros a virtual memory region in a child; the Copy option copies
+virtual memory regions between a parent and its child; the snapshot-merge
+mechanism is similar to Copy, but more complicated.
+
+Snap copies the calling process's entire virtual memory state into the specified
+child. Invoking {\tt Get} with Merge copies bytes
+from the child that have changed since the previous Snap invocation into the
+parent. Bytes that changed in the parent but not the child are not copied. Bytes
+that changed in both the parent and child generate a \emph{merge conflict}.
+The kernel implements Merge efficiently by examining page table entires.
+
+Aviram et al. conclude their discussion of Determinator's kernel by mentioning
+the three syscall ``primitives reduce to blocking, one-to-one message channels,
+making the space hierarchy a deterministic Kahn
+network''~\cite{kahn1974semantics}.
 
 \subsection{Deterministic Linux}
 
-With Determinator's design presented, we can now motivate a deterministic
-Linux.
+With Determinator presented, we can now motivate a deterministic Linux.
 Determinator was written from scratch in an academic environment with
 determinism as the main OS design goal. In some sense, Determinator is not a
-\emph{real} operating system, and the potential uptake outside the academic
+\emph{real} operating system. The potential uptake outside the academic
 world is minimal. On the other hand, Linux is a mature and widely deployed
 nondeterministic operating system. Linux is installed on millions of systems
 including desktop computers, embedded systems, and mobile devices. In other
-words, Linux is a \emph{real} operating system used in the real world. By
-adding determinism to Linux, we are able to take advantage of the widespread
-use and adoption of Linux; the potential userbase for a deterministic LInux is
-much greater than that of Determinator. Furthermroe, we can evaluate
-Determinator's design in a real operating system.
+words, Linux is a real operating system used in the real world, and by adding
+determinism to Linux, we are able to take advantage of its widespread
+use and adoption; the potential userbase for a deterministic Linux is
+much greater than that of Determinator.
+
+Adding an inherently deterministic and predictable programming model to Linux is
+a huge step in attempting to influencing how developers write the parallel
+applications of the future.
 
 \endinput
 
