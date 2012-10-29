@@ -63,7 +63,7 @@ This thesis makes the following contributions:
     programmers. This library is motivated by Determinator's user library and
     the usefulness developing programs using an API similar to that of the
     standard C library.
-    \item An improvement of Determinator's in-memory file system. Our file
+    \item An improvement of Determinator's in memory file system. Our file
     system is modeled off of the BSD Fast File System~\cite{mckusick1984fast},
     and it provides persistence.
     \item We evaluate the performance of deterministic Linux against traditional
@@ -147,7 +147,7 @@ and rely on particular the particular hardware on which the software runs, bugs
 might not appear until a parallel progam is run on an end-user's machine making
 debugging all the more difficult.
 
-Conventional multi-threaded programming supports a "share everything" model.
+Conventional multi-threaded programming supports a ``share everything'' model.
 
 All threads concurrently access and write to shared memory, and threads share a
 common file system, threads are not required to explicitly synchronize or wait
@@ -162,7 +162,7 @@ operating system support (via syscalls).
 
 Determinator sought to provide a new programming model to counter the
 conventional multi-threaded model. The strongest guarantee of the new model
-is that Determinator is "deterministic by default." In other words, user-level
+is that Determinator is ``deterministic by default.'' In other words, user-level
 programs cannot by any means, either intentional or unintentional, execute
 non-deterministically. Non-deterministic inputs, such as time of day or access
 to the shared file system, are made explicit. The kernel also requires threads
