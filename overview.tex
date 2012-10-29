@@ -155,23 +155,25 @@ dynamic linking. We may lose the ability to dynamically link shared libraries.
 
 To address concerns about Linux's more flexible process model, we present a
 \emph{hybrid process model}. A Linux process invokes a syscall to become a
-\emph{root} process, akin to Determinator's single root process. This root
+\emph{master} process, akin to Determinator's lone root process. This master
 process has full access to the legacy Linux kernel API, with some minor
-restrictions noted below. Root processes then create \emph{deterministic}
-children. Within the process hierarchy, processes abide by Determinator's
-nesting rules (e.g. children cannot outlive parents). A deterministic process's
-death automatically triggers reaping that process's subtree.
+restrictions noted below. Master processes then create \emph{deterministic}
+children. We call this master process and its entire subtree a
+\emph{deterministic process group}. Within this process group, processes abide
+by Determinator's nesting rules (e.g. children cannot outlive parents). A
+deterministic process's death automatically triggers reaping that process's
+subtree.
 
 Legacy Linux applications run alongside deterministic applications with
 absolutely no kernel restrictions. In some sense, each deterministic application
 resembles an entire Determinator ``virtual machine'' of sorts.
 
-We then add three new syscalls: {\tt dput()}, {\tt dget()}, and {\tt dret()}; we
-restrict deterministic processes to only using these three syscalls. These
+We also add three new syscalls, {\tt dput()}, {\tt dget()}, and {\tt dret()}
+and restrict deterministic processes to only use the new syscalls. These
 syscalls function exactly as their Determinator counterparts, excepting cluster
 support, the copy (grand)child subtree option, and instruction count limits.
 By restricting deterministic processes to these three syscalls, we can nearly
-remove all sources of nondeterminisim; we only have to modifiy the kernel to
+remove all sources of nondeterminism; we only have to modify the kernel to
 ignore all signals sent to deterministic processes, and thus we have effectively
 blocked all sources of nondeterminism.
 
@@ -207,22 +209,22 @@ memory image, thus giving the child access to the same library API as the
 parent. This is undesirable for our system, since this would automatically let
 deterministic children use the standard C library. To avoid this and namespace
 problems (we want deterministic processes to use familiar function names like
-{\tt printf()}), we require root and deterministic processes must use our new
-deterministic library, even though many functions must be rewritten (e.g.
+{\tt printf()}), we require master and deterministic processes must use our new
+deterministic library. Unfortunately, many functions must be rewritten (e.g.
 {\tt sprintf()}, {\tt strlen()}).
 
 To increase the usefulness of the system, we provide an in memory file system
 just as Determinator does. Whereas Determinator's file system used fixed file
 size~\cite{Aviram10cloud}, our file system design is similar to that of the BSD 
-Fast File System [--cite--]. The file system is divided into 4096-byte
-\emph{blocks}. The first block is a \emph{superblock} containing metadata about
-the file system. A region of fixed size following the superblock is reserved
-for \emph{inodes} and a bitmap for managing free blocks. The rest of the blocks
-are data blocks. In addition to direct block pointers, inodes support a singly
-and doubly indirect block of pointers. Directories are files containing a list
-of files within the directory.
+Fast File System~\cite{mckusick1984fast}. The file system is divided into
+4096-byte \emph{blocks}. The first block is a \emph{superblock} containing
+metadata about the file system. A region of fixed size following the superblock
+is reserved for \emph{inodes} and a bitmap for managing free blocks. The rest of
+the blocks are data blocks. In addition to direct block pointers, inodes support
+a singly and doubly indirect block of data block pointers. Directories are files
+containing a list of files within the directory.
 
-We also note that since root processes have access to the system file system,
+We also note that since master processes have access to the system file system,
 our user library can save the in memory file system to permanent storage if so
 desired. Thus, our file system improves upon that of Determinator by supporting
 hard linking, supporting larger file sizes, and being more flexible in managing
