@@ -268,12 +268,14 @@ system~\cite{josos}.
 Much of the library was constructed ``on the fly,'' meaning that new
 functionality was added only when necessary for building applications. Designing
 and implementing what amounts to be a replacement the standard C library is no
-easy task, and indeed a fully functional library might merit an entirely
+easy task, and indeed a fully functional library merits an entirely
 separate discussion. The point of the user library presented with this research
 is to demonstrate how higher level abstractions, like fork-join, can be
 emulated. As already demonstrated in the ``Emulating High-Level Abstractions''
 in Aviram et al.'s Determinator paper, many familiar abstractions can be
-built on top of the three syscall kernel design.
+built on top of the three syscall kernel design. We provide no new insight
+in this area, except for having a library that can run useful applications on
+Linux and vastly improving the in memory file system.
 
 Our discussion of our user library will be limited to Linux specific details,
 but otherwise will not proceed further as we have no new insight than what
