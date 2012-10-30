@@ -1,10 +1,13 @@
 
-\section{Kernel Implementation}
+\section{Implementation}
 
 With a high level design in mind, we now discuss the final version of the
 implementation. We started by forking Linux from a {\tt git} repository, and
 worked on x86\_64 Linux 3.0. We developed and tested incrementally on an 8-core
 machine with 8 gigabyets of RAM running Arch Linux.
+
+This section is divided into two logical parts. We first discuss the kernel
+implementation, then the user library and in memory file system.
 
 \subsection{Process synchronization}
 
@@ -24,21 +27,29 @@ We augment Linux's {\tt task\_struct} process structure with a
 {\tt dget()} use these synchronization primitives to correctly synchronize
 deterministic process communication within the hybrid process model.
 
-We also placed some restrictions on what a root process can do.
+We also placed some restrictions on what a master process can do. Processes
+become the master of a deterministic process group by invoking {\tt dput()} with
+a special parameter. The kernel makes sure that process is not the parent of
+any other nondeterministic process, and the process isn't using any
+unsupported virtual memory features, like ``kernel samepage
+merging''~\cite{arcangeli2009increasing} or huge pages. Once a process
+becomes a master, it can no longer {\tt fork()} 
 
+\iffalse
 In Determinator, \emph{all} processes that issue a {\tt dput()} or {\tt dget()}
 block until the child in question issues a {\tt dret()}. This is a limitation
-for applications that benefit from concurrency, such as running
-{\tt make -j2}~\cite{Aviram10}. As noted by Aviram et al., Determinator might
-miss opportunities to start a parallel job, because a deterministic {\tt make}
-in Determinator schedules itself and might be blocked waiting for a thread to
-finish when other children are runnable. In our implementation we allow the root
+for applications that benefit from concurrency, like running
+{\tt make -j2}~\cite{Aviram10}. Determinator might miss opportunities to start
+a parallel job, because a deterministic {\tt make} in Determinator schedules
+itself and might be blocked waiting for a thread to finish when other children
+are runnable. In our implementation we allow the master
 process to perform a special non-blocking {\tt dget()} to determine whether or
 not a child is still running. This allows more optimal scheduling, since the
 root can find a runnable thread and give it work. Determinism is achieved by
 recording the scheduling sequence for replay, if desired. This feature is
 desirable for inherently nondeterministic applications like web servers that may
 wish to exploit as much concurrency as possible.
+\fi
 
 \iffalse
 \begin{itemize}
@@ -63,12 +74,13 @@ wish to exploit as much concurrency as possible.
 			sequence is still controllable and can be logged for debug replay.
 \fi
 
-Root processes can use {\tt dput()} to specify a set of signals to block while
-in a blocking {\tt dput()} or {\tt dget()}. Blocking versions of these syscalls
-ignore signals specified in the block set sent to the root until the child
+Master processes can use {\tt dput()} to specify a set of signals to block while
+in a blocking {\tt dput()} or {\tt dget()} (i.e. waiting for a child to stop).
+These syscalls will
+ignore signals specified in the block set sent to the master until the child
 issues a {\tt dret()}. This can be useful when a console operation wishes to
 kill an application with a {\tt SIGINT}, but does not want other signals to
-interrupt the root process.
+interrupt the master process.
 
 The last feature relating strictly to process organization is register state
 copying. The initial {\tt dput()} call that creates a child automatically
@@ -84,6 +96,39 @@ state structure pointer to set or get a child's register set.
 \fi
 
 \subsection{Memory operations}
+
+As mentioned in the challenges section, Linux's memory subsystem is very complex
+and feature filled. Before discussing how we implemented the memory operations,
+we will give some technical background on Linux's memory subsystem. Our
+implementation reused many existing functionality, so this discussion will be
+useful.
+
+\paragraph{Background}
+A process's entire virtual memory is managed by a {\tt mm\_struct}.
+{\tt mm\_struct}s maintain a list of contiguously mapped memory regions with
+identical permission bits (e.g. read/write/execute); these regions are stored as
+{\tt vm\_area\_struct}s. Anonymous memory (memory
+not backed by a file) is mapped to a read only global zero page, and new pages
+are allocated \emph{on demand}~\cite{li1989memory}. In order to swap a single
+physical page of memory to disk, Linux requires all mappings of the page have
+the same offset from the start of the enclosing {\tt vm\_area\_struct}. This
+requirement makes swapping space and time efficient, but it places unfortunate
+restrictions on how aggressively we can apply copy-on-write.
+
+Linux provides {\tt dup\_mm()} to copy a virtual memory image of a process. This
+is used by {\tt fork()}. Of course, Linux takes advantage of copy-on-write.
+{\tt dup\_mm()} copies each {\tt vm\_area\_struct} of the source by invoking
+{\tt copy\_page\_range()}. This function walks Linux's four level
+page table structure to perform copy-on-write by actually changing page table
+entries and marking the pages as read only.
+
+Linux's memory subsystem does lack one important generality that is essential to
+the core of Determinator's memory operations: in Linux, most virtual memory
+kernel functions act on behalf
+of the calling process (inside a syscall, the calling process is accessed via
+the C macro {\tt current}) instead of operating on \emph{any} process's
+virtual memory. For example, {\tt do\_mmap()}, which maps files into memory and
+creates anonymous memory regions, will only perform work on {\tt current}.
 
 \iffalse
 	\item Memory operations are more difficult. Linux's memory subsystem is not
@@ -102,12 +147,47 @@ state structure pointer to set or get a child's register set.
 			replicated copy\_page\_range()'s page table traversal code to allow
 			the destination memory region to be offset by a page aligned amount.
 	\end{itemize}
+\fi
+
+\paragraph{Zero}
+Since {\tt dput()} and {\tt dget()} operate on a child process, not the calling
+process, the first step  was to generalize Linux's memory subsystem. Functions
+like {\tt do\_mmap()} were enhanced to take an extra argument specifying the
+target process's virtual memory structure.
+
+Implementing the Zero operation was thus very simple. {do\_mmap()} maps
+anonymous memory to a zeroed out region automatically, so to perform a Zero
+operation, the kernel unmaps then remaps the region in question. Most of the
+memory subsystem deals in page aligned regions, so the kernel needs to handle
+non page aligned begin and end regions with what amounts to a {\tt memset()}.
+
+\iffalse
 	\item Implementing zero was very simple and straightforward with the newly
 		genericized functions. Linux's existing functionality basically installs
 		a new vm\_area\_struct region and clears the page tables of that region.
 		Any accesses to the region will generate a page fault, and Linux then knows
 		to allocate a zeroed page (demand paging).
 	\item Special care for boundary conditions if the region is not page aligned.
+\fi
+
+\paragraph{Copy}
+The copy operation was more complicated. At a high level, Copy takes an
+arbitrary virtual memory region from the source and copies it to the
+destination virtual memory, with an optional offset in the destination. To be
+efficient, we only allow page aligned offsets so that we can take advantage of
+copy-on-write.
+
+We generalized {\tt copy\_page\_range()} to map pages copy-on-write with a
+destination offset. The Copy operation works by unmapping the specified region
+in the destination, then invoking a {\tt copy\_page\_range()}. To satisfy
+the swapper subsystem's requirement about how physical pages can be mapped,
+care must be taken to ensure the source and destination have their
+{\tt vm\_area\_struct}s sharing start and end boundaries (with respect to the
+destination offset). This can be accomplished with a helper function,
+{\tt split\_vma}. Finally, as before, we must handle
+non page aligned begin and end regions with a {\tt memcpy()}.
+
+\iffalse
 	\item The copy operation was more complicated: in order for copy-on-write to
 		work, vm\_area\_structs need to be aligned.
 	\begin{itemize}
@@ -118,6 +198,35 @@ state structure pointer to set or get a child's register set.
 		\item I also have to do some additional usage counting; this is not well
 			documented, so it took some time to figure out how to properly account.
 	\end{itemize}
+\fi
+
+\paragraph{Snap/Merge}
+The Snap/Merge combination is the most complicated feature, and unfortunately we
+were not able to reused as much existing code as with Zero and Copy. Performing
+a Snapshot is relatively easy. We destroy the target's {\tt mm\_struct}, then
+mimic {\tt fork()}: we make a copy of the source's {\tt mm\_struct} and attach
+it to the destination. This effectively copies the source's virtual memory image
+into the destination. We also make a second {\tt mm\_struct} copy for use as a
+reference virtual memory image later. Using {\tt dup\_mm()} only has to create
+a copy of the {\tt mm\_struct} and page tables; pages used by the process are
+only copied when written to, so this method of creating a reference snapshot is
+space efficient.
+
+Upon a Merge request, the kernel first must ensure {\tt vm\_area\_struct}s are
+aligned, just as for Copy. We then iterate over {\tt vm\_area\_struct}s and walk
+the page table hierarchy. Instead of doing a naive byte by byte comparison, we
+check page table entries to quickly determine if
+two pages have diverged since the snapshot; if a page was written to, a new page
+would have been allocated via copy-on-write, thus indicating the kernel must do
+a byte by byte comparison. Pages that have changed only in the source are copied
+via copy-on-write to the destination, when a byte by byte combination must be
+used, changed bytes are also copied over. Writes by the source and destination
+to the same byte location generate an exception. The child can no longer run,
+and the parent must acknowledge that exception by killing the child. As usual,
+we handle non page aligned start and end regions manually by doing a direct
+byte comparison.
+
+\iffalse
 	\item Snapshot/merge were the most complicated functions, especially since no
 		code existed to easily handle what I wanted to accomplish with merge.
 	\item Linux's mm\_struct encapsulates a process's entire virtual memory; it
@@ -133,6 +242,10 @@ state structure pointer to set or get a child's register set.
 	\item All the considerations before applied: merging non page-aligned regions,
 		ensuring vm\_area\_structs are aligned by splitting regions when necessary,
 		etc.
+\fi
+
+\iffalse
+This stuff goes in a different section.
 	\item Special consideration was given for features like transparent huge pages
 		when traversing page tables. For transparent huge pages, I call a backup
 		function to split the region into normal sized pages, since I did not write
@@ -144,6 +257,49 @@ state structure pointer to set or get a child's register set.
 \end{itemize}
 
 \fi
+
+\subsection{User library}
+By choice, we want all deterministic applications to use a custom user library.
+We model the library design and API off of the standard C library. Many simple
+functions must be rewritten, like {\tt strlen()}, and indeed many header files
+and implementation source has been borrowed from the instructional JOS operating
+system~\cite{josos}.
+
+Much of the library was constructed ``on the fly,'' meaning that new
+functionality was added only when necessary for building applications. Designing
+and implementing what amounts to be a replacement the standard C library is no
+easy task, and indeed a fully functional library might merit an entirely
+separate discussion. The point of the user library presented with this research
+is to demonstrate how higher level abstractions, like fork-join, can be
+emulated. As already demonstrated in the ``Emulating High-Level Abstractions''
+in Aviram et al.'s Determinator paper, many familiar abstractions can be
+built on top of the three syscall kernel design.
+
+Our discussion of our user library will be limited to Linux specific details,
+but otherwise will not proceed further as we have no new insight than what
+Aviram et al. already pointed out.
+
+Processes use a {\tt fork()} and {\tt join()} model for process management,
+specifying the process ID of the child. The in memory file system is an
+integral part of the user library. Processes can use {\tt dput()} and
+{\tt dget()} to copy memory among processes, but applications can instead use
+the file system to pass input and output among each other. For example, we
+emulate {\tt stdout} and {\tt stdin} by using special files in the file system.
+
+Since master processes have direct access to the legacy Linux kernel API,
+some functions server dual purposes.
+Functions like {\tt printf()} are designed to access nondeterministic
+(e.g. {\tt write()}) syscalls when the calling process is a
+master process. Deterministic
+processes use a separate version of {\tt printf()} that writes output to the
+in memory file system. The file system is synced at synchronization points, and
+the output is forwarded to the parent and eventually the console. At
+synchronization points, parents forward {\tt stdin} input to children.
+
+\subsection{File System} The in memory file system for deterministic Linux has
+significant improvements over that of Determinator.
+
+...
 
 \endinput
 

@@ -201,6 +201,23 @@ We limit root processes in certain ways
 		\item Implement the three syscalls as described by Aviram (at a high level).
 \fi
 
+At the expense of predictability, but without harming determinism, master
+processes in deterministic Linux are not restricted to blocking {\tt dput()}
+and {\tt dget()}. A master can invoke these syscalls with a special flag to
+poll whether or not the child process has reached a synchronization point yet.
+We have to chosen to allow this, since some parallel applications fail to
+exploit optimal concurrency in Determinator's design, like running a
+{\tt make -j2}~\cite{Aviram10}. Applications that use the non-blocking syscalls
+can still log schedule sequences to reproduce program output in a deterministic
+fashion.
+
+We also allow signals to reach master processes, and master processes can
+specify a set of signals that can interrupt a blocking {\tt dput()} or
+{\tt dget()}. Allowing signals for master processes again introduces
+nondeterminism, but we note that it is explicit and controllable. We also note 
+the usefulness of signals: terminal operators can send a {\tt SIGINT} to kill
+an application immediately.
+
 Once this kernel work is done, we begin work on a C user library. We won't use
 the standard C library with deterministic processes, since many library calls
 invoke disallowed legacy syscalls. The common use case of multithreaded
