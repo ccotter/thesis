@@ -79,7 +79,7 @@ program. Thus, we focus our efforts on nondeterministic implicit inputs.
 
 \fi
 
-\subsection{Motivation}
+\subsection{Motivation for Determinism}
 
 Determinism provides many benefits to application
 developers~\cite{Bergan11,olszewski2009kendo,bocchino2009parallel}. Bergan et
@@ -235,48 +235,17 @@ choose identifiers deterministically.
 \subsection{The Determinator Kernel}
 
 Determinator organizes processes in a nested process model~\cite{Ford96}.
-Processes cannot outlive their parents and can only communicate with their
+Processes cannot outlive their parents and can communicate only with their
 parents and children. In line with the earlier discussion of nondeterminism,
 the kernel ``provides no file systems, writable shared memory, or other
-abstractions that imply globally shared state''. Only ``the
+abstractions that imply globally shared state''~\cite{Aviram10}. Only ``the
 distinguished root [process] has direct access to nondeterministic
-inputs''~\cite{Aviram10}. It is through this root process that explicitly
-nondeterministic inputs can be controlled. All other processes must communicate
+inputs''~\cite{Aviram10}. It is this root process that can control explicitly
+nondeterministic inputs. All other processes must communicate
 directly or indirectly with the root process to access I/O devices.
 
-\begin{center}
-\begin{table*}[t]
-\centering
-\begin{tabular}{c | c | l}
-Call & Interacts with & Description \\
-\hline
-Put & Child & Copy register state and/or virtual memory range into child, and optionally start child executing. \\
-Get & Child & Copy register state, virtual memory range, and/or changes since the last snapshot out of a child. \\
-Ret & Parent & Stop and wait for parent to issue a Get or Put. Processor traps also cause implicit Ret. \\
-\end{tabular}
-\caption{System calls comprising Determinator’s kernel API.}
-\label{tab:syscalls}
-\end{table*}
-\end{center}
-
-\begin{center}
-\begin{table}[t]
-\begin{tabular}{c | c | c | l}
-Put & Get & Option & Description \\
-\hline
-X & X & Regs & PUT/GET child’s register state. \\
-X & X & Copy & Copy memory to/from child. \\
-X & X & Zero & Zero-fill virtual memory range. \\
-X &  & Snap & Snapshot child’s virtual memory. \\
-X &  & Start & Start child space executing. \\
- & X & Merge & Merge child’s changes into parent. \\
-X & X & Perm & Set memory access permissions. \\
-X & X & Tree & Copy (grand)child subtree. \\
-\end{tabular}
-\caption{Options/arguments to the Put and Get calls.}
-\label{tab:options}
-\end{table}
-\end{center}
+\input{tbl1}
+\input{tbl2}
 
 \paragraph{Kernel Interface} Processes communicate with the kernel via three
 syscalls, {\tt Put}, {\tt Get}, {\tt Ret}. Table \ref{tab:syscalls} and Table
@@ -311,6 +280,73 @@ Aviram et al. conclude their discussion of Determinator's kernel by mentioning
 the three syscall ``primitives reduce to blocking, one-to-one message channels,
 making the space hierarchy a deterministic Kahn
 network''~\cite{kahn1974semantics}.
+
+\subsection{Determinator's User Library}
+
+The Determinator kernel alone is enough to enforce deterministic program
+execution; however, Aviram et al. provide a high-level user library to make
+writing deterministic programs easier and more natural. In this section, we will
+go over
+the five main areas discussed by Aviram et al. in their ``Emulating High-Level
+Abstractions'' section: process API, file
+system, I/O, shared memory multithreading, and legacy thread APIs~\cite{Aviram10}.
+
+\paragraph{Process API}
+Determinator provides an interface similar to that of {\tt fork/wait}.
+All of these functions are implemented in user space instead of kernel space.
+To do a {\tt fork()}, the parent does a single {\tt dput()} to copy its register
+and memory into a child. The user library must manage a list of ``free'' process
+ID numbers, since the user must specify the child process ID. A {\tt waitpid()}
+works by entering a loop querying the status of the child; if the child needs
+more input to continue running (through a mechanism described below), it
+sets its status appropriately and issues a {\tt dret()}. The parent gives the
+child more input and sets it in motion again. Once the child finishes executing,
+it marks itself done and issues a {\tt dret()}.
+
+\paragraph{File System}
+Since processes can only access their register set and memory, Determinator
+provides an in-memory file system. Each process has a private copy of the
+system's file system. A {\tt fork()} copies the parent's file system state into
+the child. The parent and child work on private copies of the file system.
+
+At synchronization points, the parent reconciles the changes using file
+versioning techniques~\cite{parker1983detection}. Two files may not be
+concurrently modified; such cases lead to a reconciliation conflict. The parent
+and child may, however, perform \emph{append-only} changes to the same file.
+The file is reconciled by appending the child's additions to the end of the
+parent's file, and vice-versa.
+
+The file system is limited, however. The total file system size is limited
+by the process's address space; on 32-bit systems, this is a serious limitation.
+Since the file system resides in virtual memory, buggy programs can write to
+the memory where the file system resides, corrupting the file system. Lastly,
+the file system only supports up to 256 files, each with a max of 4MB in
+size~\cite{Aviram10cloud}.
+
+\paragraph{I/O}
+Since Deterministic processes have no access to external I/O, Determinator
+emulates I/O as a special case of the file system. Library functions like
+{\tt getchar()} and {\tt printf()} read and write from special files
+{\tt stdin} and {\tt stdout}, respectively.
+
+A {\tt printf()} appends output to {\tt stdout}. At program synchronization
+points, the file system is merged. {\tt stdout} output is forwarded
+to the parent and eventually reaches the root process where the root can
+actually write the output to the system's I/O device.
+A program does a {\tt read()} to obtain the next unread character(s) in
+{\tt stdin}. If the file is out of unread characters, {\tt read()} does a
+{\tt dret()} to ask for more input from the parent.
+
+Since the file system supports ``append-only'' conflicts, the above strategy
+works for handling I/O. As all processes reconcile their file systems, each
+process will see all other process's {\tt printf()}s.
+
+\paragraph{Legacy Multithreading APIs}
+Determinator can emulate shared memory multithreading and other legacy
+multithreaded APIs like pthreads. However, we will not discuss either here,
+since we do not use these techniques in deterministic Linux. However, we note
+that since Determinator emulates these legacy thread APIs using its three
+syscall interface, deterministic Linux could support these APIs.
 
 \subsection{Deterministic Linux}
 

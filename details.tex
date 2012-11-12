@@ -259,17 +259,27 @@ This stuff goes in a different section.
 \fi
 
 \subsection{User library}
-By choice, we want all deterministic applications to use a custom user library.
+We require that deterministic Linux applications use a custom user library.
 We model the library design and API off of the standard C library. Many simple
-functions must be rewritten, like {\tt strlen()}, and indeed many header files
-and implementation source has been borrowed from the instructional JOS operating
+functions must be rewritten, like {\tt strlen()}, and indeed we borrowed
+many header and implementation source files from the instructional JOS operating
 system~\cite{josos}.
 
-Much of the library was constructed ``on the fly,'' meaning that new
-functionality was added only when necessary for building applications. Designing
-and implementing what amounts to be a replacement the standard C library is no
-easy task, and indeed a fully functional library merits an entirely
-separate discussion. The point of the user library presented with this research
+Designing and implementing what amounts to be a replacement for the standard C
+library is no easy task, and indeed a fully functional library merits an
+entirely separate discussion. Thus, we did not set out with a specific plan or
+set of functionality to implement. Much of the library was constructed in a
+reactive manner. New functionality was added only when necessary for building
+applications.
+
+Aviram et al. devote an entire section, ``Emulating High-Level Abstractions''
+discussing how to implement a traditional Unix API ({\tt fork()}, {\tt open()},
+etc.)~\cite{Aviram10}. We do not have any new insight in this area, so we will
+limit our discussion here to Linux-specific details as they apply to writing the
+user library.
+
+\iffalse
+The point of the user library presented with this research
 is to demonstrate how higher level abstractions, like fork-join, can be
 emulated. As already demonstrated in the ``Emulating High-Level Abstractions''
 in Aviram et al.'s Determinator paper, many familiar abstractions can be
@@ -277,17 +287,34 @@ built on top of the three syscall kernel design. We provide no new insight
 in this area, except for having a library that can run useful applications on
 Linux and vastly improving the in memory file system.
 
-Our discussion of our user library will be limited to Linux specific details,
-but otherwise will not proceed further as we have no new insight than what
-Aviram et al. already pointed out.
-
 Processes use a {\tt fork()} and {\tt join()} model for process management,
 specifying the process ID of the child. The in memory file system is an
 integral part of the user library. Processes can use {\tt dput()} and
 {\tt dget()} to copy memory among processes, but applications can instead use
 the file system to pass input and output among each other. For example, we
 emulate {\tt stdout} and {\tt stdin} by using special files in the file system.
+\fi
 
+Before executing {\tt main()}, the library detects whether the executing
+process is the master or deterministic and sets up internal variables. The
+in-memory file system is initiated (described in detail below), and special
+{\tt stdin} and {\tt stdout} files are created so that processes can emulate
+functions like {\tt getchar()}. When returning from main, or performing an
+{\tt exit()}, the file system is cleaned up and the process signals to the
+parent that it has finished by issuing a {\tt dret()} and setting its exit
+status code. The parent must acknowledge the child's death before proceeding.
+
+Many functions have dual roles depending on whether the executing process is
+the master or deterministic. For example, since master processes have direct
+access to nondeterministic resources like file I/O, functions like
+{\tt printf()} write directly to the system's {\tt stdout} via the {\tt write()}
+syscall. On the other hand, when deterministic processes invoke {\tt printf()},
+the output is buffered in the special {\tt stdout} file in the in-memory file
+system. At synchronization points, the file system forwards this {\tt stdout}
+to the parent; eventually, the output reaches the master space and is directed
+to the system's {\tt stdout}.
+
+\iffalse
 Since master processes have direct access to the legacy Linux kernel API,
 some functions server dual purposes.
 Functions like {\tt printf()} are designed to access nondeterministic
@@ -297,11 +324,26 @@ processes use a separate version of {\tt printf()} that writes output to the
 in memory file system. The file system is synced at synchronization points, and
 the output is forwarded to the parent and eventually the console. At
 synchronization points, parents forward {\tt stdin} input to children.
+\fi
 
 \subsection{File System} The in memory file system for deterministic Linux has
-significant improvements over that of Determinator.
+significant improvements over that of Determinator. Whereas Determinator uses a
+fixed file size and all files are mapped to a known location in memory, we chose
+to implement the more general BSD Fast File System design.
 
-...
+The file system is divided into 4096-byte \emph{blocks}. The first block is a
+\emph{superblock} containing metatata about the file system. A region of fixed
+size following the superblock is reserved for \emph{inodes} and a bitmap for
+managing which blocks are used. The rest of the blocks are data blocks. Each
+inode represents a traditional Unix file object and contains ten direct block
+pointers and a singly and doubly indirect block pointer. A file may be up to
+1GB on 64-bit systems.
+
+Deterministic applications can also take advantage of the master process's
+access to the system file system. When an application starts up, it can read
+an in-memory file system image from permanent storage. When the application
+finishes, it can save the in-memory image back to permanent storage for use
+later.
 
 \endinput
 
