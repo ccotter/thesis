@@ -5,9 +5,7 @@ written parallel. Today, the dominant parallel programming model is
 nondeterministic. In this model, threads typically share an entire address
 space, file system, and other globally visible system managed resources like
 process IDs. The operating system freely schedules threads arbitrarily, and
-lock abstractions are not deterministic or predictable.
-
-This model is popular,
+lock abstractions are not deterministic or predictable. This model is popular,
 because threads can operate on shared data ``in-place'' instead of having to
 pack and unpack data structures~\cite{Aviram10}. Unfortunately, this model is
 error prone and has many drawbacks. Programmers spend a lot of time eliminating
@@ -41,7 +39,15 @@ application are explicit and otherwise implicit. Most implicit inputs are
 random, arbitrary, and uncontrollable; examples are timing dependencies, quantum
 size, and cache size. We say a program is \emph{deterministic} if it is
 a function of only its explicit inputs. Even though a program's schedule
-sequence may be deterministic, it may still be \emph{arbitrary}. *sdf*
+sequence may be deterministic, it may still be \emph{arbitrary}. The next
+thread to acquire a mutex lock could depend on hardware implementation or
+instruction counting. When considering a program as a relation in the
+mathematical sense, determinism guarantees the relation is a one-to-one
+function, but we may not know how to compute the function without actually
+running the program. If we can determine a program's output from program logic
+alone, we say the program is \emph{predictable}. For the rest of this thesis,
+we will equate determinism and predictability and make the distinction explicit
+only when required.
 
 \iffalse
 # Introduce determinism
@@ -89,6 +95,26 @@ stronger.]
 [MW: state the benefits in one or two sentences (four is too many), and
 say that you'll elaborate later.]
 
+\fi
+
+We are motivated by the difficulties of nondeterminism, and we would like to
+write programs in a deterministic environment.
+There are many factors to consider in such environments.
+Some systems provide determinism through special
+hardware, but these systems have limited uptake; we want to write programs
+on widely available CPUs. Some environments provide determinism through
+special programming languages, but again these have limited uptake. We want to
+write programs in conventional general-purposes programming languages. There are
+two variations of determinism: strong and weak. \emph{Strong} determinism
+ensures a deterministic order of all memory accesses, and every program is
+guaranteed to run deterministically. \emph{Weak} determinism only ensures a
+deterministic sequence of lock acquisitions, but the existence of data races
+will lead to non deterministic program execution. We prefer strong determinism
+that is predictable, since the burden of executing deterministically falls on
+the system, not the programmer.
+
+\iffalse
+
 # What kind of determinism do we want?
 * Determinism can be provided by special hardware (custom instruction sets),
   specialized programming languages, or the operating system (or a
@@ -113,6 +139,21 @@ sooner, or at least foreshadow it, that'd be better. ideally, you're
 getting to Determinator in the 3rd or 4th paragraph of the intro (not
 later). I think you can do that.]
 
+\fi
+
+Aviram et al. presented a deterministic operating system called Determinator.
+Programs are written using a novel parallel programming mode that is ``naturally
+and pervasively deterministic'' and in fact predictable. Through a three
+syscall approach, the
+Determinator microkernel can run programs written in general-purpose languages
+like C on conventional hardware. Determinator also constributes a high level
+library with familiar abstractions and an in-memory file system. Evaluations
+of Determinator against Linux show that such a model can be implemented to run
+coarse-grained parallel applications efficiently with little overhead, but
+fine-grained parallel applications have unacceptable overhead.
+
+\iffalse
+
 # Determinator
 * Aviram et al. presented a deterministic operating system called Determinator.
 * Programs are written using a novel parallel programming model that is
@@ -128,6 +169,17 @@ later). I think you can do that.]
 [MW: above bullets are good. they're your prose, not Aviram et al.'s,
 right?]
 
+\fi
+
+This thesis is about adapting Determinator's operating system design and
+programming model to Linux. We implement Determinator's three syscalls inside
+the Linux kernel. We can run legacy nondeterministic programs alongside
+deterministic programs. We can write new parallel applications using
+familiar abstractions, but legacy applications must be rewritten using the new
+API.
+
+\iffalse
+
 # Introduce deterministic Linux
 * This thesis is about adapting Determinator's operating system design and
   programming model to Linux.
@@ -135,6 +187,10 @@ right?]
 * We can run legacy nondeterministic programs alongside deterministic programs,
 * We can write parallel applications using familiar abstractions, but legacy
   applications must still be rewritten.
+
+\fi
+
+\iffalse
 
 # Why?
 * Aviram et al. were motivated by meeting the "software development, debugging,
