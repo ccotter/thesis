@@ -1,0 +1,131 @@
+
+# The state of parallel programming and nondeterminism
+* As processes move from single to multiple cores, more and more applications
+  are written parallel.
+* Today, the dominant parallel programming model is nondeterministic. In this
+  model:
+* Threads share address space, file system, and other globally visible
+  resources and
+* The OS is free to schedule threads arbitrarily and lock abstractions are not
+  deterministic or predictable.
+* This model is popular despite drawbacks:
+* Data races and lock abstractions introduce bugs and deadlock,
+* Programmers spend a lot of time eliminating nondeterminism (data races) using
+  unpredictable synchronization primitives,
+* Programmers must worry about hardware side effects like ordering of committing
+  memory operations,
+* Debugging and quality assurance are difficult without repeatability.
+
+# Introduce determinism
+* A program is a function of its inputs, both implicit and explicit.
+* We say that inputs that are semantically relevant to an application are
+  explicit, and otherwise implicit.
+* Most implicit inputs are random, arbitrary, and uncontrollable. Examples:
+  timing dependencies, quantum size, cache size.
+* A program is deterministic if it is a function of only explicit inputs.
+[MW: the three bullets above are careful and logical but could be
+expressed with a small number of words.]
+* Strong determinism guarantees a deterministic order of all shared memory
+  accesses; *all* programs run deterministically in such an environment.
+* Weak determinism only guarantees a deterministic order of lock acquisitions;
+  data races can still lead to a nondeterministic execution.
+[MW: at this point in the flow, this point about weak determinism will
+distract. you can talk about that later. just defined "determinism" in
+the way that is most convenient and keep going.]
+* Deterministic schedule abstractions might be arbitrary and unpredictable: the
+  next thread to acquire a mutex lock could depend on hardware implementation or
+  instruction counting.
+* When considering a program as a relation in the mathematical sense,
+  determinism guarantees the relation is a one-to-one function, but we may not
+  know how to compute the function without running the program.
+* If we can determine a program's output from program logic alone, we say the
+  program is predictable; predictability is a stronger notion than determinism.
+[MW: you _may_ wish to: (1) just define deterministic as you are currently
+defining "predictable" (2) include a footnote saying, "Actually, this is
+a stronger definition than is usual. See Section [relwork] (3) in the
+related work section, clarify that your definition of determinism is
+stronger.]
+
+# Benefits
+* According to Bergan et al., determinism provides benefits in four main areas:
+  debugging, testing, fault tolerance, and security.
+* Repeatability makes debugging easier and can be exploited to provide fault
+  tolerance via replication.
+* Determinism eliminates the exponential blow up of scheduling sequences.
+* Determinism eliminates covert timing channels that can be used to extract
+  sensitive data from privileged threads.
+* Predictability allows better testing methodologies.
+
+(will elaborate on benefits in separate section)
+
+[MW: state the benefits in one or two sentences (four is too many), and
+say that you'll elaborate later.]
+
+# What kind of determinism do we want?
+* Determinism can be provided by special hardware (custom instruction sets),
+  specialized programming languages, or the operating system (or a
+  combination).
+* Environments like DPJ require special programming languages and have limited
+  uptake; however, we want to write programs in general-purpose languages.
+* Systems like DMP require special hardware support. Again, these systems have
+  limited uptake; we want to write programs on widely available/popular CPUs.
+* Kendo only enforces scheduling synchronization and is only weakly
+  deterministic.
+* We prefer strong determinism, because the burden of providing determinism
+  falls on the system, not the programmer. Programs run in a strongly
+  deterministic environment cannot possibly behave nondeterministically.
+* We also want predictability; Kendo's uses a "wait for turn" approach where
+  schedule sequences are arbitrary and depend on instruction counting.
+* With all of the above aspects, we can write, run, and debug programs knowing
+  that output is determined only by program logic.
+
+[MW: above is a bit too much detail for this point in the flow. Why does
+reader need to understand DPJ, DMP, etc.? If you can get to Determinator
+sooner, or at least foreshadow it, that'd be better. ideally, you're
+getting to Determinator in the 3rd or 4th paragraph of the intro (not
+later). I think you can do that.]
+
+# Determinator
+* Aviram et al. presented a deterministic operating system called Determinator.
+* Programs are written using a novel parallel programming model that is
+  "naturally and pervasively deterministic" and in fact is predictable.
+* Through a three syscall approach, the Determinator microkernel can run
+  programs written in general-purpose languages like C on conventional hardware.
+* Determinator also contributed a high level library with familiar abstractions
+  and an in-memory file system.
+* Evaluations of Determinator against Linux show that such a model can be
+  implemented to run coarse-grained parallel application efficiently with little
+  overhead, but fine-grained parallel applications have unacceptable overhead.
+
+[MW: above bullets are good. they're your prose, not Aviram et al.'s,
+right?]
+
+# Introduce deterministic Linux
+* This thesis is about adapting Determinator's operating system design and
+  programming model to Linux.
+* We implement Determinator's three syscalls inside the Linux kernel.
+* We can run legacy nondeterministic programs alongside deterministic programs,
+* We can write parallel applications using familiar abstractions, but legacy
+  applications must still be rewritten.
+
+# Why?
+* Aviram et al. were motivated by meeting the "software development, debugging,
+  and security challenges" for parallel applications of the future. Determinator
+  was a step towards this.
+* Determinator itself has limited uptake, since it was written from scratch in
+  an academic environment.
+* Linux is a mature and widely deployed operating system; available for
+  desktops, servers, mobile, embedded.
+* If we can add determinism alongside nondeterministic Linux, this will be a
+  huge next step.
+
+# Contributions
+* We make the following contributions:
+* The first known adaptation of Determinator's design to a widely deployed OS.
+* A high-level user library for application developers, similar to
+  Determinator's user library.
+* An improvement of Determinator's in-memory file system based on BSD Fast
+  file system.
+* An evaluation of deterministic Linux against legacy nondeterministic Linux and
+  a case study of deterministic execution's benefits.
+
