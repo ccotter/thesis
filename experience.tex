@@ -15,9 +15,9 @@ until I spent a year (August 2011 - 2012) of kernel hacking and until I finally
 felt comfortable implementing my third and final iteration of deterministic
 Linux.
 
-\paragraph{First Iteration}
+\subsection{First Iteration}
 In August 2011, I began by downloading Linux 2.6.32 source and learned to
-compile and run the kernel with {\qq QEMU}~\cite{bellard2007qemu}. I ran
+compile and run the kernel with {\tt QEMU}~\cite{bellard2007qemu}. I ran
 {\tt QEMU} with an ramdisk containing a single program to run as \emph{init}.
 Mike Walfish gave me my first goal: to implement a new syscall
 in Linux. After scouring the Internet, I learned how to do this, and I wrote
@@ -40,11 +40,13 @@ Linux is an entirely novel operation.
 Unfortunately, this version of my implementation was buggy, primarily due to
 misuse of internal kernel API and race conditions in my kernel code.
 
-\paragraph{Second Iteration}
+\subsection{Second Iteration}
 In November 2011, I downloaded Linux 2.6.38 source and began rewriting my code,
-copying and pasting most of my first iteration code. With a few months of kernel
-hacking knowledge under my belt, I identified many logic bugs and had a better
-understanding of how things worked ``under the hood''. Unfortunately, I
+copying and pasting most of my first iteration code. I also started running
+an Arch Linux distribution on QEMU, since I was able to run more sophisticated
+tests with an actual Linux distribution running my kernel. With a few months of
+kernel hacking knowledge under my belt, I identified many logic bugs and had a
+better understanding of how things worked ``under the hood''. Unfortunately, I
 encountered many setbacks.
 
 \paragraph{New Memory Features}
@@ -68,10 +70,37 @@ implementation of {\tt dput()} synchronization, and I found threads being
 woken up prematurely.
 
 \paragraph{Snapshot/Merge Bug}
-When I ran a stress test to 
+When I ran a stress test to fork hundreds of processes than did a simple
+Snapshot and Merge, I encountered a kernel panic that caused unrelated processes
+to crash (i.e. {\tt bash}). Through the course of a month, I never identified
+the issue except to say that my lack of a thorough understanding of the memory
+subsystem was at fault. This, and a general lack of organization in my code lead
+me to write a third iteration.
 
-\paragraph{Final Iteration}
+\subsection{Final Iteration}
+In September 2012, I forked a copy of the Linux {\tt git} repository and
+started with Linux 3.0. I started running my code on an 8-core machine with
+8GB of ram; the 8 cores maximized parallelism to help expose concurrency
+bugs in my kernel code. I also decided to do a complete rewrite - no old code
+from previous iterations would be copied and pasted.
 
+After a year of kernel hacking, I had never felt more confident in the code I
+wrote; whereas in my second iteration I was not confident in my code's
+correctness, in my third iteration I could explain nearly every part of the
+kernel that my code interacted with.
+
+\paragraph{General Success}
+As I wrote and tested code, I often found that my code the first or second
+try. This was primarily due to careful and thoughtful reasoning about anything
+I wrote. In previous iterations, I often wrote code and ran it without fully
+knowing what to expect.
+
+\paragraph{Squashing the Snapshot Bug}
+Through the process of rewriting, I identified the Snapshot/Merge bug described
+above: I did not acquire a spinlock when operating on sensitive kernel data
+structures in my Snapshot code path. Unfortunately, this spinlock had very
+little accompanying documentation, and it was only through many months of
+kernel hacking that I even knew to use the spinlock.
 
 \endinput
 
