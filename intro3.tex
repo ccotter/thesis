@@ -15,10 +15,10 @@ This model is popular,
 because threads can operate on shared data ``in-place'' instead of having to
 pack and unpack data~\cite{Aviram10}. Unfortunately, this model is
 error prone and has many drawbacks. Programmers spend a lot of time eliminating
-data races introduced by nondeterminism using unpredictable synchronization
+data races introduced by nondeterminism by using unpredictable synchronization
 primitives. Programmers must worry about hardware side effects like commit
 ordering of memory write operations. Without repeatability, debugging and
-quality assurance are difficult to achieve.
+ensuring software quality assurance become difficult.
 
 To overcome the challenges of nondeterminism, Aviram et al. presented a
 deterministic operating system called Determinator~\cite{Aviram10}.
@@ -26,7 +26,7 @@ Programs are written using a novel parallel programming mode that is ``naturally
 and pervasively deterministic'' and in fact predictable. Through a three
 syscall approach, the
 Determinator microkernel can run programs written in general-purpose languages
-like C on conventional hardware. Determinator also constributes a high level
+like C on conventional hardware. Determinator also constributes a high-level
 library with familiar abstractions and an in-memory file system. Evaluations
 of Determinator against Linux show that such a model can be implemented to run
 coarse-grained parallel applications efficiently with little overhead, but
@@ -81,13 +81,19 @@ In general, a program is a function of both implicit and explicit inputs.
 We call semantically relevant inputs \emph{explicit} and otherwise
 \emph{implicit}. Most implicit inputs are
 random, arbitrary, and uncontrollable; examples are timing dependencies, quantum
-size, and cache size~\cite{Bergan10}. We say a program is \emph{deterministic}
+size, and cache size~\cite{Bergan11}.~\footnote{The reader should note the
+subtle distinction in classifying inputs as explicit or implicit and
+deterministic or nondeterministic. Time of day is often an explicit
+nondeterministic input, since it is semantically relevant to many applications.
+For a given CPU, cache size is an implicit deterministic input.}
+We say a program is \emph{deterministic}
 if it is a function of only its explicit inputs.
 
 Even though a program's schedule
 sequence may be deterministic, it may still be \emph{arbitrary}. The next
 thread to acquire a mutex lock could depend on hardware implementation or
-instruction counting. If we consider a program as a relation in the
+instruction counting~\cite{olszewski2009kendo}. If we consider a program
+as a relation in the
 mathematical sense, determinism guarantees the relation is a one-to-one
 function, but we may not know how to compute the function without actually
 running the program. If we can determine a program's output from examining the
@@ -131,13 +137,17 @@ stronger.]
 
 \fi
 
-There are many factors to consider in choosing a deterministic environment.
+There are many factors to consider in designing a deterministic environment.
 Some systems provide determinism through special
-hardware, but these systems have limited uptake; we want to write programs
+hardware, but these systems have limited uptake, We want to write programs
 on widely available CPUs. Some environments provide determinism through
 special programming languages, but again these have limited uptake. We want to
 write programs in conventional general-purpose programming languages.
-Lastly, we consider the two variations of determinism: strong and
+Enforcing deterministic scheduling through user space libraries has the drawback
+that programming bugs or malicious code can interfere with the scheduler.
+Instead, we want a system that cannot be compromised by misbehaved code.
+With system enforced deterministic, the burden shifts from the programmer to the
+system. Lastly, we consider the two variations of determinism: strong and
 weak~\cite{olszewski2009kendo}. \emph{Strong} determinism
 ensures a deterministic order of all memory accesses, and every program is
 guaranteed to run deterministically. \emph{Weak} determinism ensures a
@@ -145,8 +155,7 @@ deterministic sequence of lock acquisitions, but the existence of data races
 can lead to non deterministic program execution.
 
 For a deterministic Linux, we prefer strong determinism
-that is predictable and enforced by the system, since the burden of executing
-deterministically falls on the system, not the programmer. Our choice is
+that is predictable and enforced by the system. Our choice is
 affirmed by Bochino et al., who claim that all parallel programming environments
 must be ``deterministic by default''~\cite{bocchino2009parallel}.
 
@@ -180,9 +189,10 @@ later). I think you can do that.]
 
 This thesis is about adapting Determinator's operating system design and
 programming model to Linux. We implement Determinator's three syscall interface
-inside the Linux kernel. We can run legacy nondeterministic programs alongside
+inside the Linux kernel, then we write a high-level user library based on that
+of Determinator. We can run legacy nondeterministic programs alongside
 deterministic programs. We can write new parallel applications using
-familiar abstractions, but legacy applications must be rewritten using the new
+familiar abstractions. Legacy applications must be rewritten using the new
 API.
 
 \iffalse
@@ -201,12 +211,12 @@ We make the following contributions:
 \begin{myitemize4}
     \item A presentation of a deterministic Linux kernel heavily based on that
     of the Determinator kernel. This is the first known adaptation of
-    Determinator's kernel design in a \emph{real} operating system.
+    Determinator's kernel design in a widely deployed operating system.
     \item A deterministic high level user library for use by application
     programmers. This library is motivated by Determinator's user library and
-    the usefulness of developing programs using an API similar to that of the
-    standard C library.
-    \item An improvement of Determinator's in memory file system. Our file
+    the usefulness of developing programs using a familiar API like the standard
+    C library.
+    \item An improvement of Determinator's in-memory file system. Our file
     system is modeled off of the BSD Fast File System~\cite{mckusick1984fast},
     and it provides persistence.
     \item We evaluate the performance of deterministic Linux against traditional
@@ -233,7 +243,7 @@ and security challenges'' of writing future parallel
 applications~\cite{Aviram10}. Determinator was a huge step towards this.
 Unfortunately, Determinator has limited uptake outside the academic community.
 Linux is a mature and widely deployed operating system available for desktops,
-servers, mobile and embedded systems. Adding determinism alongside
+servers, mobile, and embedded systems. Adding determinism alongside
 nondeterministic Linux will be a huge next step. If we are lucky, we might be
 able to influence how future parallel applications are written.
 

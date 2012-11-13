@@ -10,14 +10,14 @@ kernel and user library design.
 Determinism provides many benefits to application
 developers~\cite{Bergan11,olszewski2009kendo,bocchino2009parallel}. Bergan et
 al. suggest there are four main benefits in
-the following areas: debugging, fault tolerance, testing, and security.
+the following areas: debugging, fault-tolerance, testing, and security.
 
 \paragraph{Debugging} Debugging multithreaded programs can be difficult, because
 often bugs are not easily reproducible, and tools such as {\tt gdb} are not
 always useful for tracking down heisenbugs~\cite{Musuvathi08}. Finding a bug's
 root cause becomes easier when a program's execution can be replayed.
 
-\paragraph{Fault tolerance} Fault tolerance through replication relies
+\paragraph{Fault-tolerance} Fault tolerance through replication relies
 on the assumption that running a program multiple times will always return the
 same output; determinism provides this benefit naturally.
 
@@ -42,6 +42,13 @@ since a program is purely a function of explicit inputs and cannot possibly rely
 subtly on the timings of hardware operations.
 \\
 
+Whereas individual tools like record and replay debuggers aid programmers
+in single areas, so called ``point solutions...do not compose well with one
+another''~\cite{Bergan11}. On the other hand, determinism provides benefits in
+all four areas with a single mechanism without any overhead besides that
+inherent in the deterministic environment itself.
+
+\iffalse
 To further motivate determinism, we consider ``point solutions'' that
 solve problems in single areas at
 once. Record and replay debuggers, like Leblanc et al.'s Instant Replay
@@ -54,6 +61,7 @@ In general, these ``point solutions...do not compose well with one
 another''~\cite{Bergan11}. On the other hand, determinism provides benefits in
 all four areas at once with a single mechanism without any additional overhead
 besides that inherent in the deterministic environment.
+\fi
 
 \subsection{Determinator}
 
@@ -65,14 +73,14 @@ we inject nondeterminism explicitly via external inputs;
 (b) introduces no data races, either at the memory access level
 or at higher semantic levels; (c)
 can enforce determinism on arbitrary, compromised or
-malicious code for security reasons; and (d) is efﬁcient
+malicious code for security reasons; and (d) is efficient
 enough to use for ``normal-case'' execution of deployed
 code, not just for instrumentation during development. \cite{Aviram10}
 \end{quote}
 
 To this end, they presented Determinator, a novel OS written from the ground up.
 For most of the remainder of this section, we will recapitulate Aviram et al.'s
-work and contributions; first we will discuss aspects that influenced
+work and contributions. First we will discuss aspects that influenced
 Determinator's design. Then, we will look at the actual kernel design itself
 and the accompanying user library.
 
@@ -82,23 +90,23 @@ designing a deterministic programming model. We discuss them here, and describe
 how Determinator handles them.
 
 \paragraph{Explicit Nondeterminism}
-Often, programs rely on nondeterministic inputs such as network packets, user
-input, or clock time. These inputs are essential to a program being useful;
-therefore, a deterministic programming model must incorporate these inputs while
-still enforcing determinism. Determinator addresses these ``semantically
-relevant'' inputs by turning them into explicit I/O~\cite{Aviram10}.
-Applications have complete control over these input sources and can even log the
+Often, programs rely on semantically relevant nondeterministic inputs such as
+network packets, user input, or clock time. A deterministic programming model
+must incorporate these inputs while still enforcing determinism. Determinator
+addresses these inputs by turning them into explicit I/O~\cite{Aviram10}.
+Applications have complete control over these input sources and can log the
 inputs for reply debugging.
 
 \paragraph{Shared program state}
 Traditional multithread programming models provide shared state: threads using
-the pthreads API share the entire memory state, and Linux's file system is
-shared by all running programs. Data races and incorrect synchronization lead
-to nondeterministic execution traces and often introduce unpredictable bugs.
+the pthreads API share the entire memory state, and all running processes share
+Linux's file system. Data races and incorrect synchronization lead
+to nondeterministic execution traces and introduce unpredictable bugs.
 
 Determinator eliminates data races caused by shared program state by eliminating
 shared state altogether. Threads operate using a private workspace model and
-synchronize program state at explicitly defined program points. When two or more
+synchronize program state at explicitly defined program points~\cite{Aviram10}.
+When two or more
 threads begin executing, each has identical private virtual memory images.
 Writes to memory are not visible to other threads until the threads synchronize.
 
@@ -108,9 +116,13 @@ deterministic nor predictable. Random hardware races determine the next thread t
 acquire a mutex lock, and as mentioned before this has debugging and testing
 implications. Even though we can record lock acquisition sequences to replay
 program execution or use some arbitrary device to choose a deterministic
-sequence, the order of acquisition is not predictable. Determinator restricts
-itself to only allow naturally deterministic and predictable synchronization
-abstractions, such as fork-join.
+sequence, the order of acquisition is not predictable.
+
+Determinator restricts itself to only allow naturally deterministic and
+predictable synchronization abstractions such as
+fork-join~\cite{nelson1988approximate}. In the fork-join paradigm, threads
+\emph{fork} children threads to perform some computation. The original thread
+gathers the results by doing a \emph{join} to block on each thread's completion.
 
 \paragraph{Globally shared namespaces}
 Operating systems introduce nondeterminism by using namespaces that are shared
@@ -119,15 +131,19 @@ by {\tt mktemp()} are examples. Since these identifiers are nondeterministic,
 and only the resource itself, not the identifier, is semantically relevant to
 the application, Determinator disallows the system from choosing resource
 identifiers from globally shared namespaces. Instead, applications themselves
-choose identifiers deterministically.
+choose identifiers deterministically. For example, when performing the
+equivalent of {\tt fork()}, instead of the operating system returning the
+process ID of the newly created child, the user program must specify the child
+ID.
 
 \subsection{The Determinator Kernel}
 
-Determinator organizes processes in a nested process model~\cite{Ford96}.
+Determinator organizes processes in a nested process
+model~\cite{Ford96,Aviram10}.
 Processes cannot outlive their parents and can communicate only with their
 parents and children. In line with the earlier discussion of nondeterminism,
 the kernel ``provides no file systems, writable shared memory, or other
-abstractions that imply globally shared state''~\cite{Aviram10}. Only ``the
+abstractions that imply globally shared state''. Only ``the
 distinguished root [process] has direct access to nondeterministic
 inputs''~\cite{Aviram10}. It is this root process that can control explicitly
 nondeterministic inputs. All other processes must communicate
