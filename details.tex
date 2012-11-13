@@ -345,6 +345,20 @@ an in-memory file system image from permanent storage. When the application
 finishes, it can save the in-memory image back to permanent storage for use
 later.
 
+\subsection{Implementation Statistics}
+We began with a {\tt git} fork of Linux 3.0.
+The kernel changes required 2916 additional lines of code, the
+majority of which went towards implementing the syscall logic and changing
+the memory subsystem. Table \ref{tab:loc} lists lines of code added for various
+kernel and user library components.
+
+\input{loc}
+
+The kernel and user library code are available on GitHub as two
+repositories.~\footnote{
+\url{https://github.com/ccotter/linux-deterministic/tree/v3.0-det}}~\footnote{
+\url{https://github.com/ccotter/libdeterm}}
+
 \endinput
 
 	\begin{itemize}

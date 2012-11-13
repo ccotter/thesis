@@ -6,7 +6,7 @@ nondeterministic Linux deterministic. For the rest of this thesis, we
 distinguish between \emph{legacy} Linux (the unmodified Linux kernel) and
 \emph{deterministic} Linux.
 
-\subsection{Design Goals}
+\subsection{Design Goals and Non-goals}
 
 We wish to make 64-bit Linux deterministic, and in doing we will present an
 interface similar to that of Determinator. We also would like to run legacy
@@ -154,7 +154,8 @@ dynamic linking. We may lose the ability to dynamically link shared libraries.
 \subsection{High level approach}
 
 To address concerns about Linux's more flexible process model, we present a
-\emph{hybrid process model}. A Linux process invokes a syscall to become a
+\emph{hybrid process model}. A Linux process invokes the {\tt dput()} syscall
+(introduced below) to become a
 \emph{master} process, akin to Determinator's lone root process. This master
 process has full access to the legacy Linux kernel API, with some minor
 restrictions noted below. Master processes then create \emph{deterministic}
@@ -214,7 +215,8 @@ fashion.
 We also allow signals to reach master processes, and master processes can
 specify a set of signals that can interrupt a blocking {\tt dput()} or
 {\tt dget()}. Allowing signals for master processes again introduces
-nondeterminism, but we note that it is explicit and controllable. We also note 
+nondeterminism, but we note that the master can control the signals and write
+them to a log file for replay. We also note 
 the usefulness of signals: terminal operators can send a {\tt SIGINT} to kill
 an application immediately.
 

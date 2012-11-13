@@ -4,11 +4,14 @@
 \begin{tabular}{c | c | l}
 Call & Interacts with & Description \\
 \hline
-Put & Child & Copy register state and/or virtual memory range into child, and optionally start child executing. \\
-Get & Child & Copy register state, virtual memory range, and/or changes since the last snapshot out of a child. \\
-Ret & Parent & Stop and wait for parent to issue a Get or Put. Processor traps also cause implicit Ret. \\
+Put & Child & Copy register state and/or virtual memory range
+into child, and optionally start child executing. \\
+Get & Child & Copy register state, virtual memory range, and/or
+changes since the last snapshot out of a child. \\
+Ret & Parent & Stop and wait for parent to issue a Get or Put.
+Processor traps also cause implicit Ret. \\
 \end{tabular}
-\caption{System calls comprising Determinator’s kernel API.}
+\caption{System calls comprising Determinator’s kernel API.~\cite{Aviram10}}
 \label{tab:syscalls}
 \end{table*}
 

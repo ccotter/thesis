@@ -1,6 +1,60 @@
 
 \section{Background}
 
+With an understanding of the goal of this thesis, we will now discuss the
+benefits of deterministic execution. Then, we will present the Determinator
+kernel and user library design.
+
+\subsection{Benefits of Determinism}
+
+Determinism provides many benefits to application
+developers~\cite{Bergan11,olszewski2009kendo,bocchino2009parallel}. Bergan et
+al. suggest there are four main benefits in
+the following areas: debugging, fault tolerance, testing, and security.
+
+\paragraph{Debugging} Debugging multithreaded programs can be difficult, because
+often bugs are not easily reproducible, and tools such as {\tt gdb} are not
+always useful for tracking down heisenbugs~\cite{Musuvathi08}. Finding a bug's
+root cause becomes easier when a program's execution can be replayed.
+
+\paragraph{Fault tolerance} Fault tolerance through replication relies
+on the assumption that running a program multiple times will always return the
+same output; determinism provides this benefit naturally.
+
+\paragraph{Testing} The difficulties in testing multithreaded applications are
+compounded by racy nondeterministic scheduling. Developers and automated test
+systems must consider the exponential blow up of possible scheduling sequences.
+Determinism helps alleviate this problem, since for each input, there is exactly
+one possible logical scheduling sequence of threads. This observation eliminates
+the need to consider what scheduling interactions can occur, and ultimately
+helps developers design test strategies~\cite{Bergan11}.
+
+Since schedule sequences may still be arbitrarily deterministic, developers may
+still have a hard time designing test suites. With a predictable programming
+model like Determinator, however, developers can reason about code beforehand
+to design a more sophisticated testing strategy.
+
+\paragraph{Security} Processes sharing a CPU or other hardware should be
+conscious about leaking sensitive data. A malicious thread can exploit covert
+timing channels to extract sensitive data from other, perhaps privileged,
+threads~\cite{Aviram10cloud}. Determinism eliminates covert timing channels,
+since a program is purely a function of explicit inputs and cannot possibly rely
+subtly on the timings of hardware operations.
+\\
+
+To further motivate determinism, we consider ``point solutions'' that
+solve problems in single areas at
+once. Record and replay debuggers, like Leblanc et al.'s Instant Replay
+system, aid in debugging parallel programs by logging scheduling sequences and
+other relevant interactions in order to replay an execution sequence exactly.
+However, these debuggers are costly in terms of storage and performance.
+\iffalse Even with replay ability, the execution sequence is still arbitrary and
+gives the programmer no intuition about the program's behavior. \fi
+In general, these ``point solutions...do not compose well with one
+another''~\cite{Bergan11}. On the other hand, determinism provides benefits in
+all four areas at once with a single mechanism without any additional overhead
+besides that inherent in the deterministic environment.
+
 \subsection{Determinator}
 
 Aviram et al. set out to provide
@@ -114,7 +168,7 @@ The kernel implements Merge efficiently by examining page table entires.
 Aviram et al. conclude their discussion of Determinator's kernel by mentioning
 the three syscall ``primitives reduce to blocking, one-to-one message channels,
 making the space hierarchy a deterministic Kahn
-network''~\cite{kahn1974semantics}.
+network''~\cite{Aviram10,kahn1974semantics}.
 
 \subsection{Determinator's User Library}
 
@@ -182,24 +236,6 @@ multithreaded APIs like pthreads. However, we will not discuss either here,
 since we do not use these techniques in deterministic Linux. However, we note
 that since Determinator emulates these legacy thread APIs using its three
 syscall interface, deterministic Linux could support these APIs.
-
-\subsection{Deterministic Linux}
-
-With Determinator presented, we can now motivate a deterministic Linux.
-Determinator was written from scratch in an academic environment with
-determinism as the main OS design goal. In some sense, Determinator is not a
-\emph{real} operating system. The potential uptake outside the academic
-world is minimal. On the other hand, Linux is a mature and widely deployed
-nondeterministic operating system. Linux is installed on millions of systems
-including desktop computers, embedded systems, and mobile devices. In other
-words, Linux is a real operating system used in the real world, and by adding
-determinism to Linux, we are able to take advantage of its widespread
-use and adoption; the potential userbase for a deterministic Linux is
-much greater than that of Determinator.
-
-Adding an inherently deterministic and predictable programming model to Linux is
-a huge step in attempting to influencing how developers write the parallel
-applications of the future.
 
 \endinput
 
