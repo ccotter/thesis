@@ -346,18 +346,19 @@ finishes, it can save the in-memory image back to permanent storage for use
 later.
 
 \subsection{Implementation Statistics}
-We began with a {\tt git} fork of Linux 3.0.
-The kernel changes required 2916 additional lines of code, the
-majority of which went towards implementing the syscall logic and changing
-the memory subsystem. Table \ref{tab:loc} lists lines of code added for various
-kernel and user library components.
+We began with a {\tt git} fork of Linux 3.0. Table \ref{tab:loc} lists lines
+of code added (including comments but excluding newlines) for various kernel and
+user library components. The ``new user library'' category counts code added by
+us, and the ``borrowed user library'' category counts code that was reused from
+{\tt JOS}. In total, the kernel required 2564 additional lines of code.
 
 \input{loc}
 
-The kernel and user library code are available on GitHub as two
-repositories.~\footnote{
-\url{https://github.com/ccotter/linux-deterministic/tree/v3.0-det}}~\footnote{
-\url{https://github.com/ccotter/libdeterm}}
+The kernel~\footnote{
+\url{https://github.com/ccotter/linux-deterministic}} and user
+library~\footnote{\url{https://github.com/ccotter/libdeterm}} are available on
+GitHub as two separate repositories. The deterministic Linux kernel
+is maintained as a separate branch {\tt v3.0-det}.
 
 \endinput
 
