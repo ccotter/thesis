@@ -1,25 +1,25 @@
 
-\section{Undergraduate Research Experience}
+\section{Reflections on my research experience}
 Before we conclude, this section will reflect on the undergraduate research
-journey as experience by the primary author, Chris Cotter. I initially read
+journey as experience by the author, Chris Cotter. I initially read
 Aviram et al.'s ``Efficient System-Enforced Deterministic Parallelism'' paper
 in July of 2011 and wrote my first line of code in the Linux kernel that August.
-After many iterations, my final implementation of deterministic Linux took up
-the month of September 2012, and I wrote this thesis soon after.
+After many implementation iterations, my final implementation of deterministic
+Linux took up the month of September 2012, and I wrote this thesis soon after.
 
 \paragraph{Learning the Kernel}
 There is no ``Linux Kernel 101'' course at the University, and most existing
 documentation and comments in kernel code are written for seasoned kernel
 programmers. Thus, I very often found myself lost and frustrated. It wasn't
-until I spent a year (August 2011 - 2012) of kernel hacking and until I finally
+until I spent a year (August 2011 - 2012) of kernel hacking until I finally
 felt comfortable implementing my third and final iteration of deterministic
 Linux.
 
 \subsection{First Iteration}
 In August 2011, I began by downloading Linux 2.6.32 source and learned to
-compile and run the kernel with {\tt QEMU}~\cite{bellard2007qemu}. I ran
+compile and run the kernel with {\tt QEMU}~\cite{qemu}. I ran
 {\tt QEMU} with an ramdisk containing a single program to run as \emph{init}.
-Mike Walfish gave me my first goal: to implement a new syscall
+My advisor Mike Walfish gave me my first goal: to implement a new syscall
 in Linux. After scouring the Internet, I learned how to do this, and I wrote
 skeleton code for my three syscalls: {\tt dput()}, {\tt dget()}, and
 {\tt dret()}.

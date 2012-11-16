@@ -43,9 +43,11 @@ since a program is purely a function of explicit inputs and cannot possibly rely
 subtly on the timings of hardware operations.
 \\
 
-We would also like to point out the importance of repeatability in simulators.
+\iffalse
+We also note the importance of repeatability in simulators.
 Physicists rely on repeatability of simulated experiments to verify results,
 and video game developers often benefit from repeatable physics engines.
+\fi
 
 Whereas individual tools like record and replay debuggers aid programmers in
 single areas, these so called ``point solutions\ldots do not compose well with
@@ -146,12 +148,18 @@ of the operating system returning the process ID of the newly created child.
 Determinator organizes processes in a nested process
 model~\cite{Ford96,Aviram10}.
 Processes cannot outlive their parents and can communicate only with their
-parents and children. The kernel ``provides no file systems, writable shared
+parent and children. The kernel ``provides no file systems, writable shared
 memory, or other abstractions that imply globally shared state''. Only ``the
 distinguished root [process] has direct access to nondeterministic
 inputs''~\cite{Aviram10}. It is this root process that can control explicitly
 nondeterministic inputs like network packets. All other processes must
 communicate directly or indirectly with the root process to access I/O devices.
+
+Processes execute in a \emph{private workspace} model. Each process (or thread)
+keeps a private copy of the application's virtual memory. Processes do not
+see another process's writes until reconciliation at explicit synchronization
+points. This model eliminates read/write races, and write/write races are still
+deterministic since the program defines reconciliation order.
 
 \input{tbl1}
 \input{tbl2}
@@ -180,19 +188,20 @@ versa. The {\tt Zero} option zeros a virtual memory region in a child. The
 Determinator provides a more sophisticated memory utility: snapshot-merge.
 {\tt Snap} copies the calling process's entire virtual memory state into the
 specified child. Invoking {\tt Get} with the {\tt Merge} parameter performs a
-three-way diff. The kernel copies bytes
-from the child that have changed since the previous {\tt Snap} invocation into
-the parent. Bytes that changed in the parent but not the child are not copied.
+three-way diff and merge. The kernel compares bytes
+in the child that have changed since the previous {\tt Snap} invocation. Bytes
+that have changed in the child only are copied into the parent. Bytes that
+changed in the parent but not the child are not copied.
 Bytes that changed in both the parent and child generate a
 \emph{merge conflict} exception. The kernel implements {\tt Merge} efficiently
 by examining page table entires. This snapshot-merge mechanism is useful for
-providing applications with a fork-join model, where a process forks many
-children to perform some computation and simply {\tt Merge} the results back
-into itself.
+providing applications with an easy way to implement fork-join. A process forks
+many children to perform some computation and simply {\tt Merge} the results
+back into itself.
 
 Aviram et al. conclude their discussion of Determinator's kernel by mentioning
-the three syscall primitives ``reduce to blocking, one-to-one message channels,
-making the space hierarchy a deterministic Kahn
+that the three syscall primitives ``reduce to blocking, one-to-one message
+channels, making the space hierarchy a deterministic Kahn
 network''~\cite{Aviram10,kahn1974semantics}.
 
 \subsection{Determinator's user library}
