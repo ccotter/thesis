@@ -3,8 +3,8 @@
 We begin the discussion of adding determinism to Linux by discussing overall
 design goals of the project. Next we look at the challenges of making
 nondeterministic Linux deterministic. For the rest of this thesis, we
-distinguish between \emph{legacy} Linux (the unmodified Linux kernel) and
-\emph{deterministic} Linux.
+distinguish between \emph{legacy} Linux (the unmodified Linux kernel and its
+nondeterministic API) and \emph{deterministic} Linux.
 
 \subsection{Design Goals and Non-goals}
 
@@ -19,29 +19,29 @@ Linux, legacy programs must be rewritten using the new operating system
 abstractions.
 
 We would also like to write a user level C library with familiar abstractions
-such as fork-join and an in memory file system based on those of Determinator.
-In some cases, we improve upon Determinator's user library, especially the
-limitations of the in memory file system~\cite{Aviram10,Aviram10cloud}.
+such as fork-join and an in-memory file system based on those of Determinator.
+We would like to improve Determinator's in-memory file system, removing its
+limitations~\cite{Aviram10,Aviram10cloud}.
 
 We do not wish to apply all of Determinator's features to a deterministic Linux.
 Determinator supports deterministic distributed cluster computing by extending
-its nested process model to a cluster of nodes. Determinator also supports a
-``tree'' copy operation for {\tt Put} and {\tt Get}. Lastly, Determinator allows
-threads to place an instruction limit on children threads. We have no intention
-of supporting these features, but we note this limitation does not detract from
-making Linux deterministic.
+its nested process model to a cluster of nodes\~cite{Aviram10}. Determinator
+also supports a ``tree'' copy operation for {\tt Put} and {\tt Get}. Lastly,
+Determinator allows threads to place an instruction limit on children threads.
+We have no intention of supporting these features, but we note these limitations
+do not detract from our goal of making Linux deterministic.
 
-Since the primary goal is to make Linux deterministic, we may decide
-to limit or ignore features of the Linux kernel internals. For example, Linux
-supports huge pages of memory alongside ``normal'' 4-KB pages. Since this is an
-internal optimization that is hidden from user applications and for reasons of
+Since the primary goal is determinism, we may decide to limit or ignore Linux
+kernel internal features. For example, Linux supports huge 2MB pages of memory
+alongside ``normal'' 4KB pages. Since this is an internal optimization that is
+hidden from user applications and for reasons of
 implementation complexity, we may not allow deterministic applications to take
 advantage of certain kernel features. We would like to keep all existing
 functionality available to applications running in legacy mode, however.
 
-Moreover, some useful features may be unavailable to deterministic processes.
+Some useful features may be unavailable to deterministic programs.
 For example, shared dynamic libraries require nontrivial support from the Linux
-kernel and standard C library. There is nothing limiting us from devising ways
+kernel and C standard library. There is nothing limiting us from devising ways
 to support features like this, but we feel it is out of scope of our primary
 goal.
 

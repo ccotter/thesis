@@ -273,7 +273,7 @@ Since the file system supports ``append-only'' conflicts, the above strategy
 works well for handling I/O. As all processes reconcile their file
 systems, each process will see all other process's {\tt printf()}s.
 
-\paragraph{Legacy Multithreading APIs}
+\paragraph{Legacy multithreading APIs}
 Determinator can emulate shared memory multithreading and other legacy
 multithreaded APIs like pthreads. However, we will not discuss either here,
 since we do not use these techniques in deterministic Linux. However, we note
