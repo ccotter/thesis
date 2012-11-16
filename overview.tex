@@ -6,30 +6,31 @@ nondeterministic Linux deterministic. For the rest of this thesis, we
 distinguish between \emph{legacy} Linux (the unmodified Linux kernel and its
 nondeterministic API) and \emph{deterministic} Linux.
 
-\subsection{Design Goals and Non-goals}
+\subsection{Design goals and non-goals}
 
-We wish to make 64-bit Linux deterministic, and in doing we will present an
-interface similar to that of Determinator. We also would like to run legacy
-Linux applications alongside deterministic applications, for this is one of the
-motivating factors applying Determinator's design to Linux. We want to run
-legacy applications without modification, but we won't make any attempt to force
-legacy applications to run deterministically. Legacy applications will run in a
-legacy nondeterministic mode. In order to take advantage of determinism in
+We wish to make 64-bit Linux deterministic, and in doing so we will present an
+interface similar to that of Determinator. We would like to run legacy
+Linux applications without modification alongside deterministic applications,
+for this is one of the motivating factors applying Determinator's design to
+Linux. We won't make any attempt to force legacy applications to run
+deterministically. In order to take advantage of determinism in
 Linux, legacy programs must be rewritten using the new operating system
 abstractions.
 
-We would also like to write a user level C library with familiar abstractions
-such as fork-join and an in-memory file system based on those of Determinator.
-We would like to improve Determinator's in-memory file system, removing its
-limitations~\cite{Aviram10,Aviram10cloud}.
+We would also like to write a user level C library and an in-memory file system
+based on those of Determinator.
+To address Determinator's in-memory file system's limitations~\cite{Aviram10,
+Aviram10cloud}, we would like to improve the file system by adapting
+the BSD Fast File System~\cite{mckusick1984fast} and having deterministic
+applications utilize Linux's disk-backed persistent storage.
 
-We do not wish to apply all of Determinator's features to a deterministic Linux.
-Determinator supports deterministic distributed cluster computing by extending
-its nested process model to a cluster of nodes\~cite{Aviram10}. Determinator
-also supports a ``tree'' copy operation for {\tt Put} and {\tt Get}. Lastly,
-Determinator allows threads to place an instruction limit on children threads.
-We have no intention of supporting these features, but we note these limitations
-do not detract from our goal of making Linux deterministic.
+We do not wish to apply all of Determinator's features to our deterministic
+Linux. The Determinator kernel: (a) extends its nested process model to support
+deterministic distributed cluster computing; (b) supports a ``tree'' copy
+operation for {\tt Put} and {\tt Get}; and (c) allows
+threads to place an instruction limit on
+children threads. We have no intention of supporting these features, but we note
+these limitations do not detract from our goal of making Linux deterministic.
 
 Since the primary goal is determinism, we may decide to limit or ignore Linux
 kernel internal features. For example, Linux supports huge 2MB pages of memory
@@ -39,11 +40,11 @@ implementation complexity, we may not allow deterministic applications to take
 advantage of certain kernel features. We would like to keep all existing
 functionality available to applications running in legacy mode, however.
 
-Some useful features may be unavailable to deterministic programs.
-For example, shared dynamic libraries require nontrivial support from the Linux
-kernel and C standard library. There is nothing limiting us from devising ways
-to support features like this, but we feel it is out of scope of our primary
-goal.
+Other useful library-level features may be unavailable to deterministic
+programs. For example, shared dynamic libraries require nontrivial support from
+the Linux kernel and standard C library. There is nothing limiting us from
+devising ways to support features like this, but we feel it is outside the scope
+of our primary goal.
 
 \iffalse
 \begin{itemize}
@@ -66,37 +67,54 @@ goal.
 
 \subsection{Challenges}
 
-We have already discussed the four categories of nondeterminism identified by
-Aviram et al; these obvservations are general enough that they also apply in
-making Linux deterministic. In adapting Determinator's design to Linux, however,
-we must address the following additional issues.
+We already discussed the four categories of nondeterminism identified by
+Aviram et al. in section \ref{sec:four-nondet}; these observations are general
+enough that they also apply in
+making Linux deterministic. The Linux kernel presents additional challenges, and
+we discuss them here.
 
 \iffalse
-capitalization in paragraph titles?
+\paragraph{Adjusting the nested process model}
 \fi
-\paragraph{Inherent nondeterminism in Linux}
-In order to run legacy Linux applications, we cannot enforce that all but a
-single root process operate in deterministic mode; this design aspect must be
-reexamined to allow legacy and deterministic applications to run side-by-side.
-Furthermore, Linux's process model allows reparenting and for children to
-outlive parents, directly opposed to Determinator's nested process model.
+In order to run legacy Linux applications, we cannot enforce Determinator's
+requirement that all but a single root process run in deterministic mode.
+Linux's process model is also too flexible: it allows reparenting and for
+children to outlive parents, directly opposed to Determinator's nested process
+model.
 
-Linux's threading model is inherently nondeterministic and provides many
-additional sources of nondeterminism than those already addressed by the above
-discusion: Linux supports signals and System V IPC. To address most sources of
-nondeterminism (implicit and explicit), Determinator's designers simply did not
-add support for these features, since Determinator was written from scratch. On
-the other hand, Linux already provides extensive support for nondeterministic
-features (e.g. the {\tt gettimeofday()} syscall).
+\iffalse
+\paragraph{Addressing nondeterminism in Linux}
+\fi
+Since Determinator was
+written from scratch, the designers addressed sources of nondeterminism by
+simply not providing kernel support for such features. On the other hand,
+Linux's existing threading model is inherently nondeterministic and already
+provides extensive support for nondeterministic features (e.g. the
+{\tt gettimeofday()} syscall). We must also address nondeterminism not covered
+by Aviram et al. Linux supports a wider range of process communication utilities
+including signals, pipes, and System V IPC.
+
+\begin{figure}[t]
+\includegraphics[scale=.6]{memory.jpg}
+\caption{Data structure relationships associated with object-based reverse
+mapping. The associated logic consists of over 1900 lines of C
+code.~\cite{objectrmap}}
+\label{fig:memory}
+\end{figure}
 
 \paragraph{Memory subsystem} Linux supports a wide range of virtual memory
-features including memory mapped files, huge pages, and swapping to disk; all
+features including memory mapped files, huge pages, and swapping to disk. All
 of these features are layered on top of an abstraction for supporting memory
-management units for a wide range of processor types. Compared to Determinator,
-Linux's memory subsystem uses much more complicated abstractions to support
-these features. Memory operations (Zero, Copy, and Snap/Merge) are central to
-Determinator's design, so understanding and overcoming this complicated system
-is essential to implementing determinism in Linux.
+management units of many different processor architectures (e.g. x86\_64,
+Alpha). Whereas Determinator's memory management subsystem deals
+only with page table management for a single architecture, Linux's memory
+subsystem uses more complicated data structures and nontrivial algorithms.
+Figure~\ref{fig:memory} demonstrates the complicated data structures associated
+with object based reverse mapping~\cite{overlyanon} used to find all processes
+that map a given page of memory. From an implementation perspective, Linux's
+memory subsystem's complexity presents a potentially formidable challenge in
+implementing Determinator's three memory operations ({\tt Zero}, {\tt Copy}, and
+{\tt Snap/Merge}).
 
 \iffalse
 	\item Challenges
@@ -136,13 +154,13 @@ is essential to implementing determinism in Linux.
 
 \paragraph{Standard C Library} Many Linux applications written in C use
 the standard C library. This library in large part functions as a wrapper around
-legacy Linux syscalls, and thus is highly nondeterministic. Whereas some
+legacy Linux syscalls and thus is highly nondeterministic. Whereas some
 functions, such as {\tt strlen()} might not use nondeterministic syscalls, many
 other functions do use nondeterministic syscalls (e.g. {\tt printf()}). Thus,
 deterministic programs may be forced to use a completely different library.
-Moreover, the libraries in Linux are often linked dynamically with shared
-libraries, but Determinator does not provide any native kernel support for
-dynamic linking. We may lose the ability to dynamically link shared libraries.
+Moreover, libraries in Linux are often linked dynamically with shared
+libraries, but since Determinator does not provide any native kernel support for
+dynamic linking, we may lose the ability to dynamically link shared libraries.
 
 \iffalse
 		\item Standard C library implementation obviously relies on legacy syscalls.
@@ -153,6 +171,16 @@ dynamic linking. We may lose the ability to dynamically link shared libraries.
 
 \subsection{High level approach}
 
+\begin{figure*}[ht]
+\includegraphics[scale=.5]{proc-diagram.png}
+\caption{Illustration of the hybrid process model with two deterministic process
+groups. Legacy nondeterministic processes ({\tt firefox},
+{\tt ssh}) run as children of {\tt init}. {\tt make} and {\tt matmult} are
+masters of deterministic applications. The deterministic children (the diamond
+processes) are isolated from the rest of the system.}
+\label{fig:proc-diagram}
+\end{figure*}
+
 To address concerns about Linux's more flexible process model, we present a
 \emph{hybrid process model}. A Linux process invokes the {\tt dput()} syscall
 (introduced below) to become a
@@ -161,10 +189,7 @@ process has full access to the legacy Linux kernel API, with some minor
 restrictions noted below. Master processes then create \emph{deterministic}
 children. We call this master process and its entire subtree a
 \emph{deterministic process group}. Within this process group, processes abide
-by Determinator's nesting rules (e.g. children cannot outlive parents). A
-deterministic process's death automatically triggers reaping that process's
-subtree.
-
+by Determinator's nesting rules (e.g. children cannot outlive parents).
 Legacy Linux applications run alongside deterministic applications with
 absolutely no kernel restrictions. In some sense, each deterministic application
 resembles an entire Determinator ``virtual machine'' of sorts.
@@ -176,7 +201,8 @@ support, the copy (grand)child subtree option, and instruction count limits.
 By restricting deterministic processes to these three syscalls, we can nearly
 remove all sources of nondeterminism; we only have to modify the kernel to
 ignore all signals sent to deterministic processes, and thus we have effectively
-blocked all sources of nondeterminism.
+blocked all sources of nondeterminism. Figure \ref{fig:proc-diagram} illustrates
+the hybrid process model in a hypothetical environment.
 
 \iffalse
 -- where to put root process limits (no KSM, no memadvise for huge pages)
@@ -203,12 +229,13 @@ We limit root processes in certain ways
 \fi
 
 At the expense of predictability, but without harming determinism, master
-processes in deterministic Linux are not restricted to blocking {\tt dput()}
+processes are not restricted to blocking {\tt dput()}
 and {\tt dget()}. A master can invoke these syscalls with a special flag to
 poll whether or not the child process has reached a synchronization point yet.
 We have to chosen to allow this, since some parallel applications fail to
-exploit optimal concurrency in Determinator's design, like running a
-{\tt make -j2}~\cite{Aviram10}. Applications that use the non-blocking syscalls
+exploit optimal concurrency in Determinator's design. Aviram et al. demonstrate
+a case where running parallel
+{\tt make -j2}~\cite{Aviram10} might be blocked on thread one while. Applications that use the non-blocking syscalls
 can still log schedule sequences to reproduce program output in a deterministic
 fashion.
 
