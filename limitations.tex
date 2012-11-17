@@ -1,5 +1,28 @@
 
-\section{Limitations}
+\section{Limitations and future work}
+
+[not finished]
+
+I'll discuss Linux specific limitations like deterministic processes not using
+the full memory subsystem feature set (e.g. huge pages). File system merging
+is slow: because data blocks live in arbitrary regions throughout virtual
+memory, reconciliation involves chasing data block pointers and invoking
+dput/dget many times (linear in file size). This could be alleviated by
+adding kernel support for an in-memory file system.
+
+We don't support instruction limits, so malicious or buggy children could
+execute forever, blocking parents indefinitely.
+
+Implementation is not optimized. Example: killing a child process is
+surprisingly slow (I'd like to find out why, since this should be a very quick
+nonblocking operation).
+
+\subsection{Future work}
+
+Recent efforts by Determinator's authors have extended the OS to support
+arbitrary process interactions (not just hierarchical). Determinator and
+deterministic Linux focused on compute-bound applications using fork-join.
+What about I/O intensive apps or other parallel paradigms?
 
 \endinput
 

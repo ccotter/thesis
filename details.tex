@@ -83,19 +83,17 @@ wish to exploit as much concurrency as possible.
 			sequence is still controllable and can be logged for debug replay.
 \fi
 
-Master processes can use {\tt dput()} to specify a set of signals to block while
-in a blocking {\tt dput()} or {\tt dget()} (i.e. waiting for a child to stop).
-These syscalls will
-ignore signals specified in the block set sent to the master until the child
-issues a {\tt dret()}. This can be useful when a console operation wishes to
+Master processes can use {\tt dput()} to specify a set of signals to ignore
+while in a blocking {\tt dput()} or {\tt dget()} (i.e. waiting for a child to
+stop). This can be useful when a console operation wishes to
 kill an application with a {\tt SIGINT}, but does not want other signals to
 interrupt the master process.
 
 The last feature relating strictly to process organization is register state
 copying. The initial {\tt dput()} call that creates a child automatically
 copies register state, since we effectively delegate work to {\tt fork()}.
-Subsequent calls to {\tt dput()} and {\tt dget()} pass general purpose register
-state structure pointer to set or get a child's register set.
+Subsequent calls to {\tt dput()} and {\tt dget()} can put or retrieve a child's
+general-purpose register state.
 
 \iffalse
 	\end{itemize}
@@ -106,26 +104,34 @@ state structure pointer to set or get a child's register set.
 
 \subsection{Memory operations}
 
-As mentioned in the challenges section, Linux's memory subsystem is very complex
-and feature filled. Before discussing how we implemented the memory operations,
+As mentioned in the section \ref{sec:challenges}, Linux's memory subsystem is
+very complex. Before discussing how we implemented the memory operations,
 we will give some technical background on Linux's memory subsystem. Our
-implementation reused many existing functionality, so this discussion will be
+implementation reused many existing functions, so this discussion will be
 useful.
+
+\begin{figure}
+\includegraphics[scale=.45]{mm_struct.png}
+\caption{Illustration of Linux's memory management data structures.}
+\label{fig:mmstruct}
+\end{figure}
 
 \paragraph{Background}
 A process's entire virtual memory is managed by a {\tt mm\_struct}.
 {\tt mm\_struct}s maintain a list of contiguously mapped memory regions with
 identical permission bits (e.g. read/write/execute); these regions are stored as
-{\tt vm\_area\_struct}s. Anonymous memory (memory
-not backed by a file) is mapped to a read only global zero page, and new pages
+{\tt vm\_area\_struct}s (see Figure \ref{fig:mmstruct}). Anonymous memory
+(memory not backed by a file) is mapped to a
+read only global zero page, and new pages
 are allocated \emph{on demand}~\cite{li1989memory}. In order to swap a single
 physical page of memory to disk, Linux requires all mappings of the page have
-the same offset from the start of the enclosing {\tt vm\_area\_struct}. This
+the same offset from the start of the enclosing {\tt vm\_area\_struct} (see
+Figure \ref{fig:memory}). This
 requirement makes swapping space and time efficient, but it places unfortunate
 restrictions on how aggressively we can apply copy-on-write.
 
-Linux provides {\tt dup\_mm()} to copy a virtual memory image of a process. This
-is used by {\tt fork()}. Of course, Linux takes advantage of copy-on-write.
+Linux provides {\tt dup\_mm()} to copy the virtual memory image of a process.
+{\tt fork()} uses this to copy a process's memory via copy-on-write.
 {\tt dup\_mm()} copies each {\tt vm\_area\_struct} of the source by invoking
 {\tt copy\_page\_range()}. This function walks Linux's four level
 page table structure to perform copy-on-write by actually changing page table
@@ -269,21 +275,21 @@ This stuff goes in a different section.
 
 \subsection{User library}
 We require that deterministic Linux applications use a custom user library.
-We model the library design and API off of the standard C library. Many simple
+We model the library design and API on the C standard library. Many simple
 functions must be rewritten, like {\tt strlen()}, and indeed we borrowed
 many header and implementation source files from the instructional JOS operating
 system~\cite{josos}.
 
-Designing and implementing what amounts to be a replacement for the standard C
+Designing and implementing what amounts to be a replacement for the C standard
 library is no easy task, and indeed a fully functional library merits an
 entirely separate discussion. Thus, we did not set out with a specific plan or
 set of functionality to implement. Much of the library was constructed in a
-reactive manner. New functionality was added only when necessary for building
-applications.
+reactive manner where new functionality was added only when necessary for
+building applications.
 
-Aviram et al. devote an entire section, ``Emulating High-Level Abstractions''
-discussing how to implement a traditional Unix API ({\tt fork()}, {\tt open()},
-etc.)~\cite{Aviram10}. We do not have any new insight in this area, so we will
+Aviram et al. devote an entire section, ``Emulating High-Level Abstractions,''
+discussing how to implement a traditional Unix API~\cite{Aviram10}. We do not
+have any new insight in this area, so we will
 limit our discussion here to Linux-specific details as they apply to writing the
 user library.
 
@@ -304,14 +310,15 @@ the file system to pass input and output among each other. For example, we
 emulate {\tt stdout} and {\tt stdin} by using special files in the file system.
 \fi
 
-Before executing {\tt main()}, the library detects whether the executing
+\paragraph{Linux specific considerations}
+Before executing {\tt main()}, the library runtime detects whether the executing
 process is the master or deterministic and sets up internal variables. The
 in-memory file system is initiated (described in detail below), and special
 {\tt stdin} and {\tt stdout} files are created so that processes can emulate
 functions like {\tt getchar()}. When returning from main, or performing an
 {\tt exit()}, the file system is cleaned up and the process signals to the
-parent that it has finished by issuing a {\tt dret()} and setting its exit
-status code. The parent must acknowledge the child's death before proceeding.
+parent that it has finished by settings its status code and issuing a
+{\tt dret()}. The parent must acknowledge the child's death before proceeding.
 
 Many functions have dual roles depending on whether the executing process is
 the master or deterministic. For example, since master processes have direct
@@ -321,7 +328,8 @@ syscall. On the other hand, when deterministic processes invoke {\tt printf()},
 the output is buffered in the special {\tt stdout} file in the in-memory file
 system. At synchronization points, the file system forwards this {\tt stdout}
 to the parent; eventually, the output reaches the master space and is directed
-to the system's {\tt stdout}.
+to the system's {\tt stdout}. The library runtime choses the appropriate action
+by checking if the executing process is the master.
 
 \iffalse
 Since master processes have direct access to the legacy Linux kernel API,
@@ -335,18 +343,20 @@ the output is forwarded to the parent and eventually the console. At
 synchronization points, parents forward {\tt stdin} input to children.
 \fi
 
-\subsection{File System} The in memory file system for deterministic Linux has
+\subsection{File system} The in memory file system for deterministic Linux has
 significant improvements over that of Determinator. Whereas Determinator uses a
 fixed file size and all files are mapped to a known location in memory, we chose
-to implement the more general BSD Fast File System design.
+to implement the more general BSD Fast File System design. We since implemented
+deterministic Linux on x86\_64, we do not run into the address space limitations
+imposed by 32-bit systems.
 
 The file system is divided into 4096-byte \emph{blocks}. The first block is a
 \emph{superblock} containing metatata about the file system. A region of fixed
 size following the superblock is reserved for \emph{inodes} and a bitmap for
 managing which blocks are used. The rest of the blocks are data blocks. Each
-inode represents a traditional Unix file object and contains ten direct block
-pointers and a singly and doubly indirect block pointer. A file may be up to
-1GB on 64-bit systems.
+{\tt inode} represents a traditional Unix file object and contains ten direct
+block pointers and a singly and doubly indirect block pointer. A file may be up 
+to 1GB on 64-bit systems.
 
 Deterministic applications can also take advantage of the master process's
 access to the system file system. When an application starts up, it can read

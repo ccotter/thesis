@@ -66,6 +66,7 @@ of our primary goal.
 \fi
 
 \subsection{Challenges}
+\label{sec:challenges}
 
 We already discussed the four categories of nondeterminism identified by
 Aviram et al. in section \ref{sec:four-nondet}; these observations are general
@@ -152,6 +153,16 @@ implementing Determinator's three memory operations ({\tt Zero}, {\tt Copy}, and
 			start address in every page table entry.
 \fi
 
+\begin{figure*}[ht]
+\includegraphics[scale=.5]{proc-diagram.png}
+\caption{Illustration of the hybrid process model with two deterministic process
+groups. Legacy nondeterministic processes ({\tt firefox},
+{\tt ssh}) run as children of {\tt init}. {\tt make} and {\tt matmult} are
+masters of deterministic applications. The deterministic children (the diamond
+processes) are isolated from the rest of the system.}
+\label{fig:proc-diagram}
+\end{figure*}
+
 \paragraph{Standard C Library} Many Linux applications written in C use
 the standard C library. This library in large part functions as a wrapper around
 legacy Linux syscalls and thus is highly nondeterministic. Whereas some
@@ -170,16 +181,6 @@ dynamic linking, we may lose the ability to dynamically link shared libraries.
 \fi
 
 \subsection{High level approach}
-
-\begin{figure*}[ht]
-\includegraphics[scale=.5]{proc-diagram.png}
-\caption{Illustration of the hybrid process model with two deterministic process
-groups. Legacy nondeterministic processes ({\tt firefox},
-{\tt ssh}) run as children of {\tt init}. {\tt make} and {\tt matmult} are
-masters of deterministic applications. The deterministic children (the diamond
-processes) are isolated from the rest of the system.}
-\label{fig:proc-diagram}
-\end{figure*}
 
 To address concerns about Linux's more flexible process model, we present a
 \emph{hybrid process model}. A Linux process invokes the {\tt dput()} syscall
@@ -229,17 +230,17 @@ We limit root processes in certain ways
 \fi
 
 At the expense of predictability, but without harming determinism, master
-processes are not restricted to blocking {\tt dput()}
-and {\tt dget()}. A master can invoke these syscalls with a special flag to
-poll whether or not the child process has reached a synchronization point yet.
-We have to chosen to allow this, since some parallel applications fail to
-exploit optimal concurrency in Determinator's design. Aviram et al. demonstrate
-a case where running parallel
-{\tt make -j2}~\cite{Aviram10} might be blocked on thread one while. Applications that use the non-blocking syscalls
+processes can use nonblocking {\tt dput()} and {\tt dget()} (invoked with a 
+special flag) to poll whether or not the child process has reached a
+synchronization point yet. We have to chosen to allow this, since some parallel
+applications fail to exploit optimal concurrency in Determinator's design.
+Since threads are responsible for scheduling children, a CPU might become
+available while the scheduler thread remains blocked waiting for another thread
+to finish. Applications that use the nonblocking syscalls
 can still log schedule sequences to reproduce program output in a deterministic
 fashion.
 
-We also allow signals to reach master processes, and master processes can
+We also allow signals to reach master processes. Master processes can
 specify a set of signals that can interrupt a blocking {\tt dput()} or
 {\tt dget()}. Allowing signals for master processes again introduces
 nondeterminism, but we note that the master can control the signals and write
@@ -247,34 +248,19 @@ them to a log file for replay. We also note
 the usefulness of signals: terminal operators can send a {\tt SIGINT} to kill
 an application immediately.
 
-Once this kernel work is done, we begin work on a C user library. We won't use
-the standard C library with deterministic processes, since many library calls
-invoke disallowed legacy syscalls. The common use case of multithreaded
-applications is to {\tt fork()} a child with a copy of the parent's virtual
-memory image, thus giving the child access to the same library API as the
-parent. This is undesirable for our system, since this would automatically let
-deterministic children use the standard C library. To avoid this and namespace
-problems (we want deterministic processes to use familiar function names like
-{\tt printf()}), we require master and deterministic processes must use our new
-deterministic library. Unfortunately, many functions must be rewritten (e.g.
-{\tt sprintf()}, {\tt strlen()}).
+Once this kernel work is done, we begin work on a C user library. Deterministic
+applications won't use the standard C library, because many library calls
+invoke disallowed legacy syscalls. Unfortunately, many functions must be
+rewritten (e.g. {\tt sprintf()}, {\tt strlen()}).
 
-To increase the usefulness of the system, we provide an in memory file system
-just as Determinator does. Whereas Determinator's file system used fixed file
-size~\cite{Aviram10cloud}, our file system design is similar to that of the BSD 
-Fast File System~\cite{mckusick1984fast}. The file system is divided into
-4096-byte \emph{blocks}. The first block is a \emph{superblock} containing
-metadata about the file system. A region of fixed size following the superblock
-is reserved for \emph{inodes} and a bitmap for managing free blocks. The rest of
-the blocks are data blocks. In addition to direct block pointers, inodes support
-a singly and doubly indirect block of data block pointers. Directories are files
-containing a list of files within the directory.
-
-We also note that since master processes have access to the system file system,
-our user library can save the in memory file system to permanent storage if so
-desired. Thus, our file system improves upon that of Determinator by supporting
-hard linking, supporting larger file sizes, and being more flexible in managing
-underlying resources (inodes, blocks).
+To increase the usefulness of the system, we provide an in-memory file system
+just as Determinator does. Whereas Determinator's file system uses fixed file
+size~\cite{Aviram10cloud}, our file system design is based on the BSD
+Fast File System~\cite{mckusick1984fast}. Our file system is organized as a
+rooted tree and supports hard linking, dynamic file sizes that can grow up to
+1GB, and better resource management (inodes, data blocks). Since a disk-backed
+file system is standard on Linux systems, master processes can save and load the
+in-memory file system to disk to provide persistence.
 
 \iffalse
 		\item Once kernel work is finished, write user library to wrap around the
