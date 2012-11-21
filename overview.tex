@@ -96,11 +96,14 @@ by Aviram et al. Linux supports a wider range of process communication utilities
 including signals, pipes, and System V IPC.
 
 \begin{figure}[t]
-\includegraphics[scale=.6]{memory.jpg}
+\includegraphics[scale=.33]{anon_vma.png}
 \caption{Data structure relationships associated with object-based reverse
-mapping. The associated logic consists of over 1900 lines of C
-code.~\cite{objectrmap}}
-\label{fig:memory}
+mapping. Two processes map virtual memory to the same page read only (possibly
+at different addresses). In order for the kernel to swap a given page to disk,
+object-based reverse mapping assumes each process maps the page to
+\mbox{{\tt vm\_area\_struct->start\_addr} + {\tt page->index}} in virtual
+memory.}
+\label{fig:anon_vma}
 \end{figure}
 
 \paragraph{Memory subsystem} Linux supports a wide range of virtual memory
@@ -110,7 +113,7 @@ management units of many different processor architectures (e.g. x86\_64,
 Alpha). Whereas Determinator's memory management subsystem deals
 only with page table management for a single architecture, Linux's memory
 subsystem uses more complicated data structures and nontrivial algorithms.
-Figure~\ref{fig:memory} demonstrates the complicated data structures associated
+Figure~\ref{fig:anon_vma} demonstrates the complicated data structures associated
 with object based reverse mapping~\cite{overlyanon} used to find all processes
 that map a given page of memory. From an implementation perspective, Linux's
 memory subsystem's complexity presents a potentially formidable challenge in

@@ -126,7 +126,7 @@ read only global zero page, and new pages
 are allocated \emph{on demand}~\cite{li1989memory}. In order to swap a single
 physical page of memory to disk, Linux requires all mappings of the page have
 the same offset from the start of the enclosing {\tt vm\_area\_struct} (see
-Figure \ref{fig:memory}). This
+Figure \ref{fig:anon_vma}). This
 requirement makes swapping space and time efficient, but it places unfortunate
 restrictions on how aggressively we can apply copy-on-write.
 
