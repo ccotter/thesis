@@ -104,6 +104,8 @@ general-purpose register state.
 
 \subsection{Memory operations}
 
+\label{sec:memop}
+
 As mentioned in the section \ref{sec:challenges}, Linux's memory subsystem is
 very complex. Before discussing how we implemented the memory operations,
 we will give some technical background on Linux's memory subsystem. Our
@@ -111,7 +113,7 @@ implementation reused many existing functions, so this discussion will be
 useful.
 
 \begin{figure}
-\includegraphics[scale=.45]{mm_struct.png}
+\includegraphics[scale=.42]{mm_struct.png}
 \caption{Illustration of Linux's memory management data structures.}
 \label{fig:mmstruct}
 \end{figure}

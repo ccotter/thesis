@@ -66,33 +66,84 @@ page tables and \mbox{{\tt pthread\_join()}} does the same work as {\tt dget()}
 without the {\tt Merge}.
 
 \subsubsection{Results}
-Table \ref{tab:matover} shows deterministic overhead for the \emph{lu} and
-\emph{matmult} benchmarks. Small input sizes exhibit unacceptable overheads.
+Applications that require a lot of memory synchronization show considerable
+overhead for small inputs, but have much more acceptable overheads for large
+inputs.
+Table \ref{tab:matover} shows deterministic overheads for the \emph{lu} and
+\emph{matmult} benchmarks.
 Inputs smaller than $1024\times 1024$ spend anywhere from $12.6\%$ to $58.2\%$
 of their run time in the kernel doing a memory merge.
 Small inputs in general have a hard time seeing parallel benefits: the pthread
 versions of both benchmarks did not see parallel speedup benefits until the
-input matrix reached at least $64\times 64$. 
-It isn't until large input sizes (at least $1024\times 1024$) when we begin to
-see more "acceptable" overheads of at most $2.1\times$ for $N>1$.
-\emph{matmult} 
+input matrix reached at least $64\times 64$. Still, it isn't until even larger
+input sizes (at least $1024\times 1024$) when we begin to
+see more "acceptable" deterministic overheads of at
+most $2.1\times$ for $N>1$. \emph{matmult}
+performs better than pthreads on the largest input size $1024\times 1024$; we
+cannot account for this, but a good place to begin investigating this
+occurrence might be comparing how the kernel schedules pthreads threads and
+deterministic threads.
 
-The embarrassingly parallel \emph{md5} benchmark showed very little overhead; it
-had overhead of $1.17\times$ for $N=1$ and $1.06\times$ for $N=8$. This
+The \emph{qsort} benchmark also shows unacceptable overhead for small inputs,
+but once the input array size becomes at least 800K, overheads stayed under
+$2\times$ (Table \ref{tab:qover}).
+The embarrassingly parallel \emph{md5} benchmark exhibited very little overhead;
+it had overhead of $1.17\times$ for $N=1$ and $1.06\times$ for $N=8$. This
 can likely be attributed to the little amount of information transfered back and
 forth between threads (a single boolean and the matching string when it is
-found). The \emph{qsort} benchmark shows unacceptable overhead for small inputs,
-but once the input array size becomes at least 800K, overheads stay under
-$2\times$ (Table \ref{tab:qover}).
+found).
+
+\input{dspeedup}
+Figure \ref{fig:dspeedup} shows speedup over one CPU for the deterministic
+benchmarks. We show the results when run on the largest input size available
+(e.g. 80M for \emph{qsort}). The \emph{matmult} benchmark appears to show
+speedup better than the ideal case. This can be attributed to the base case
+$N=1$ running exceptionally slow. \emph{matmult} always creates 64 threads, and
+we believe the overhead of managing 64 threads with a single processor plus the
+cost of merging adds significant overhead. \emph{md5} scales well,
+\emph{lu} shows less scalability, and \emph{qsort} scales poorly, barely
+reaching $2\times$ when $N=8$. \emph{matmult} shows promise in its ability to
+scale, but we cannot be too sure due to irregular behavior in the base case.
+
+\subsubsection{Fine-tuning the benchmarks}
+The apparent overhead for managing threads in the pthread and deterministic
+benchmarks appears to have affected our results. Deterministic \emph{matmult}
+runs faster for $1024\times 1024$ matrices than the pthread version and appears
+to scale better than the ideal case. Regardless of the number of available
+processors, the main thread in both matrix benchmarks starts by forking a large
+number of threads (64 for \emph{matmult}, 256 for \emph{lu}), then joining on
+each thread. A more sane approach might be to base the number of threads created
+on $N$. We could also distribute a large number of tasks among a thread pool.
+
+We may attribute some of the exceptionally high overhead for small inputs to
+the cost of merging. For simplicity, our deterministic thread join merges the
+entire static data segment. \emph{qsort}, \emph{matmult}, and \emph{lu} all
+declare static arrays with sizes as large as the maximum expected input. For
+example, \emph{lu} declares two {\tt long double} arrays of size
+$2048\times 2048$ for a total of 128MB on our 64-bit machine. When we join on
+all 256 threads for the $16\times 16$ input, we merge over all $128MB$. Page
+table optimizations (Section \ref{sec:memop}) enable the kernel to only have to
+do a \mbox{byte-by-byte} merge for a single page containing the input matrix,
+but the kernel must still check at least 32767 other page table entries assuming
+4KB pages!
+
+Thankfully, the syscall API allows us to specify a range of virtual memory to
+merge; we could fine-tune our programs to merge only what we know has changed.
+For the \emph{qsort} benchmark, we could opt to use the {\tt Copy} to achieve
+the same effect. {\tt Copy} copies page tables directly without checking page
+table entries and possibly the bytes themselves as {\tt Merge} does. By having
+our high-level join function merge the entire static data segment, our join
+method is very general in the types of programs it can be used with. We could
+likely trade this generality for performance gains.
 
 \subsection{Finding bugs deterministically}
 
-To demonstrate one of the key benefits of deterministic (Section
+To demonstrate one of the key benefits of deterministic execution (Section
 \ref{sec:det-motiv}), we consider a Gaussian elimination program written using
 the deterministic API and pthreads. Figures \ref{fig:pgauss} and
-\ref{fig:dgauss} show nondeterministic and deterministic versions of Gaussian
-elimination. There is a crucial synchronization bug, however: both algorithms
-create \mbox{\tt nrows - k} worker threads but only join
+\ref{fig:dgauss} show nondeterministic and deterministic portions of Gaussian
+elimination code. There is a crucial synchronization bug, however: both
+algorithms create \mbox{\tt nrows - k} worker threads but only join
 \mbox{\tt nrows - k - 1} threads. We purposefully inserted this bug, but the
 reader can imagine a programmer making this typo by mistake.
 
@@ -109,58 +160,18 @@ output will be correct. If the final worker thread does not finish by the time
 we examine the output, we get an intermediate result. The output is
 nondeterministic, owing to a race condition, since all threads share memory.
 
-\begin{subfigures}
-\begin{figure}
-{\tt \footnotesize
-\begin{verbatim}
-pthread_t thread[MAXTHREADS];
-struct thread_data data[MAXTHREADS];
-void pthread_reduce(void) {
-   for (i = 1; k <= nrows - 1; ++k) {
-      for (i = k + 1; i <= nrows; ++i) {
-         data[i] = /* Setup worker. */;
-         pthread_create(&thread[i], NULL, worker,
-            &data[i]);
-      }
+Determinism provides a clear benefit in debugging, since the deterministic
+version always behaves the same, whereas the buggy behavior might exhibit itself
+rarely in the pthread version.
+We also consider testing our application to ensure its correctness.
+When testing our Gaussian elimination application, determinism allows us to see
+right away that, in general, all inputs give incorrect answers. On the other
+hand, it may be the case that the nondeterministic version always gives
+the correct answer for matrices we test on a development machine, but as soon as
+we ship the program to a client's machines with a different number of processors
+(for example), the bug exhibits itself.
 
-      /* Bug! Should be i <= nrows */
-      for (i = k + 1; i < nrows; ++i)
-         pthread_join(thread[i], NULL);
-   }
-}
-\end{verbatim}
-}
-\caption{pthread Gaussian elimination.}
-\label{fig:pgauss}
-\end{figure}
-\begin{figure}
-{\tt \footnotesize
-\begin{verbatim}
-/* Forks a deterministic child. Returns 0 into the
- * child and 1 into the parent. */
-int dfork(pid_t childid);
-/* Merges a child's changes into the parent after
- * the child issues a dret(). */
-void djoin(pid_t childid);
-
-void det_reduce(void) {
-   for (i = 1; k <= nrows - 1; ++k) {
-      for (i = k + 1; i <= nrows; ++i) {
-         data[i] = /* Setup worker. */;
-         if (!dfork(i)) { worker(&data[i]); dret(); }
-      }
-
-      /* Bug! Should be i <= nrows */
-      for (i = k + 1; i < nrows; ++i)
-         djoin(i);
-   }
-}
-\end{verbatim}
-}
-\caption{Deterministic Gaussian elimination.}
-\label{fig:dgauss}
-\end{figure}
-\end{subfigures}
+\input{gauss}
 
 \endinput
 
