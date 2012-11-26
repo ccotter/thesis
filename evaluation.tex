@@ -1,8 +1,8 @@
 
 \section{Evaluation}
 
-This section evaluates deterministic Linux by comparing compute-bound
-applications run using the new deterministic API and nondeterministic pthreads.
+This section evaluates deterministic Linux by running compute-bound
+applications using deterministic Linux and nondeterministic pthreads.
 We conclude by considering a case study demonstrating the qualitative debugging
 benefits of determinism.
 
@@ -13,42 +13,154 @@ performed comparable to nondeterministic Linux equivalents, but fine-grained
 applications did not scale nearly as well, incurring high performance costs
 owing to memory synchronization costs.
 
+\input{matoverhead}
+\input{qoverhead}
+
 The primary goal of our evaluations is to determine if Linux can efficiently run
-applications using Determinator's programming model. Since the
-deterministic Linux API reuses much existing kernel code, we expect reasonable
+applications using Determinator's programming model. Since the deterministic
+Linux kernel reuses a lot of existing code, we expect reasonable
 performance compared to the equivalent nondeterministic application. However,
 applications that heavily rely on memory-intensive kernel operations like
-Snapshot-Merge might incur performance penalties.
+Snapshot/Merge might incur performance penalties.
 
-[unfinished]
+\subsubsection{Methodology}
+We evaluated four benchmark programs. \emph{md5} searches for a string whose
+md5 hash yields a particular hash value (i.e. a brute force password cracker).
+\emph{md5} creates $N+1$ threads to perform parallel work where $N$ is the
+number of processors available. The \emph{qsort} benchmark recursively sorts an
+integer array by forking children threads going $log_2(2\cdot N)$ levels deep,
+after which the recursive computation is carried out sequentially.
+\emph{matmult} multiplies two square matrices by dividing the input into
+64 blocks and forking off threads to multiply the individual blocks. \emph{lu}
+performs LU decomposition of a square matrix by breaking the input into 256
+blocks and creating a thread for each block. Our LU algorithm breaks the blocks
+up into discontiguous blocks of memory (i.e. we represent our matrix in
+row-major order).
 
-I tested 3 applications: matrix multiplication, md5 password cracker, merge
-sort. Each is course-grained.
-I also have a quicksort and LU decomposition, and at the very least I'd like to get
-the LU decomposition into the test set since it is fine-grained.
+All benchmarks are designed so the deterministic and pthread versions operate on
+identical inputs generated from a pseudorandom number generator (\emph{matult},
+\emph{lu}, \emph{qsort}) or "hardcoded" input (\emph{md5}).
+For a given input size, \emph{qsort} runs three tests on different inputs and
+averages the run times. Both matrix benchmarks run ten tests on different inputs
+and average the results. \emph{md5} searches for eleven fixed ASCII strings
+whose values are distributed randomly over a fixed alphabet. The run times for
+all eleven runs are averaged to a single value.
 
-I'm still fine tuning the evaluation programs, but so far I've found that
-on ``small'' inputs sizes, the three benchmarks perform with up to ~10x
-performance penalties. ``Large'' input sizes incur penalties between 1-2x.
-md5 (the most parallelizable and uses the least memory synchronization)
-performs very well, but matrix multiplication (uses a lot of memory
-synchronization) has considerable overhead.
+The \emph{matmult}, \emph{qsort}, and \emph{md5} benchmarks are modified
+versions of benchmarks found in Determinator's source on
+GitHub.~\footnote{\url{https://github.com/bford/Determinator}}
+The \emph{lu} benchmark was written from scratch using an algorithm describe
+on the Internet~\cite{lualg}. We tested on a 2 socket $\times$ 4 core 2.33 GHz
+Intel Xeon PC running Arch Linux with 8GB of RAM. All benchmarks use the same
+modified \mbox{x86\_64} Linux 3.0 kernel.
 
-I'd also like to determine why the perform costs occur (profiling), since I
-believe changing implementation of either the syscalls or library routines could
-reduce the performance penalties for small input sizes.
+The deterministic benchmarks create threads by issuing a {\tt dput()} specifying
+the {\tt Snap} option. We join thread results by performing a {\tt Merge} on the
+program's entire static data segment (initialized and uninitialized). Thus,
+deterministic applications incur the performance penalty of creating two copies
+of the parent thread's page tables and associated kernel data structures
+as well as scanning the page tables and potentially the pages
+themselves of the child's entire static data. The pthread programs incur no
+such penalties, since \mbox{{\tt pthread\_create()}} does not make copies of
+page tables and \mbox{{\tt pthread\_join()}} does the same work as {\tt dget()}
+without the {\tt Merge}.
 
-I tested on an 8-core machine and ran tests using 1-8 threads.
+\subsubsection{Results}
+Table \ref{tab:matover} shows deterministic overhead for the \emph{lu} and
+\emph{matmult} benchmarks. Small input sizes exhibit unacceptable overheads.
+Inputs smaller than $1024\times 1024$ spend anywhere from $12.6\%$ to $58.2\%$
+of their run time in the kernel doing a memory merge.
+Small inputs in general have a hard time seeing parallel benefits: the pthread
+versions of both benchmarks did not see parallel speedup benefits until the
+input matrix reached at least $64\times 64$. 
+It isn't until large input sizes (at least $1024\times 1024$) when we begin to
+see more "acceptable" overheads of at most $2.1\times$ for $N>1$.
+\emph{matmult} 
+
+The embarrassingly parallel \emph{md5} benchmark showed very little overhead; it
+had overhead of $1.17\times$ for $N=1$ and $1.06\times$ for $N=8$. This
+can likely be attributed to the little amount of information transfered back and
+forth between threads (a single boolean and the matching string when it is
+found). The \emph{qsort} benchmark shows unacceptable overhead for small inputs,
+but once the input array size becomes at least 800K, overheads stay under
+$2\times$ (Table \ref{tab:qover}).
 
 \subsection{Finding bugs deterministically}
 
-[not finished]
+To demonstrate one of the key benefits of deterministic (Section
+\ref{sec:det-motiv}), we consider a Gaussian elimination program written using
+the deterministic API and pthreads. Figures \ref{fig:pgauss} and
+\ref{fig:dgauss} show nondeterministic and deterministic versions of Gaussian
+elimination. There is a crucial synchronization bug, however: both algorithms
+create \mbox{\tt nrows - k} worker threads but only join
+\mbox{\tt nrows - k - 1} threads. We purposefully inserted this bug, but the
+reader can imagine a programmer making this typo by mistake.
 
-Basically, I wrote a parallel LU decomposition using pthreads and deterministic
-Linux but purposely introduced a synchronization bug. I fork N children, but
-only join on N-1 children (the bug). The pthreads program sometimes gives the
-correct results, other times it doesn't. The deterministic program always gives
-the incorrect result.
+We ran both versions multiple times and examined the resulting matrix.
+The deterministic program \emph{always}
+produced the wrong answer. {\tt djoin()} merges changes back into the main
+thread for all but the last worker thread. When the last worker thread
+finishes, its changes are private and never seen by the main thread.
+
+On the other hand, the pthreads program executes nondeterministically. We
+observed three different output matrices, one of which was the correct result.
+If the final worker thread finishes before we observe the final result, the
+output will be correct. If the final worker thread does not finish by the time
+we examine the output, we get an intermediate result. The output is
+nondeterministic, owing to a race condition, since all threads share memory.
+
+\begin{subfigures}
+\begin{figure}
+{\tt \footnotesize
+\begin{verbatim}
+pthread_t thread[MAXTHREADS];
+struct thread_data data[MAXTHREADS];
+void pthread_reduce(void) {
+   for (i = 1; k <= nrows - 1; ++k) {
+      for (i = k + 1; i <= nrows; ++i) {
+         data[i] = /* Setup worker. */;
+         pthread_create(&thread[i], NULL, worker,
+            &data[i]);
+      }
+
+      /* Bug! Should be i <= nrows */
+      for (i = k + 1; i < nrows; ++i)
+         pthread_join(thread[i], NULL);
+   }
+}
+\end{verbatim}
+}
+\caption{pthread Gaussian elimination.}
+\label{fig:pgauss}
+\end{figure}
+\begin{figure}
+{\tt \footnotesize
+\begin{verbatim}
+/* Forks a deterministic child. Returns 0 into the
+ * child and 1 into the parent. */
+int dfork(pid_t childid);
+/* Merges a child's changes into the parent after
+ * the child issues a dret(). */
+void djoin(pid_t childid);
+
+void det_reduce(void) {
+   for (i = 1; k <= nrows - 1; ++k) {
+      for (i = k + 1; i <= nrows; ++i) {
+         data[i] = /* Setup worker. */;
+         if (!dfork(i)) { worker(&data[i]); dret(); }
+      }
+
+      /* Bug! Should be i <= nrows */
+      for (i = k + 1; i < nrows; ++i)
+         djoin(i);
+   }
+}
+\end{verbatim}
+}
+\caption{Deterministic Gaussian elimination.}
+\label{fig:dgauss}
+\end{figure}
+\end{subfigures}
 
 \endinput
 
