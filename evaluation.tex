@@ -123,9 +123,9 @@ example, \emph{lu} declares two {\tt long double} arrays of size
 $2048\times 2048$ for a total of 128MB on our 64-bit machine. When we join on
 all 256 threads for the $16\times 16$ input, we merge over all 128MB. Page
 table optimizations (Section \ref{sec:memop}) enable the kernel to only have to
-do a \mbox{byte-by-byte} merge for a single page containing the input matrix,
-but the kernel must still check at least 32767 other page table entries assuming
-4KB pages!
+do a \mbox{byte-by-byte} merge for the single page containing the input matrix,
+but the kernel must still check at least 32767 other page table entries,
+assuming 4KB pages!
 
 Thankfully, the syscall API allows us to specify a range of virtual memory to
 merge; we could fine-tune our programs to merge only what we know has changed.
