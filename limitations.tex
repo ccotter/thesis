@@ -1,28 +1,60 @@
 
 \section{Limitations and future work}
 
-[not finished]
+\input{synctypes}
 
-I'll discuss Linux specific limitations like deterministic processes not using
-the full memory subsystem feature set (e.g. huge pages). File system merging
-is slow: because data blocks live in arbitrary regions throughout virtual
-memory, reconciliation involves chasing data block pointers and invoking
-dput/dget many times (linear in file size). This could be alleviated by
-adding kernel support for an in-memory file system.
+While our user library supports the fork/join construct, there are other
+parallel abstractions we could support. The barrier abstraction
+blocks thread execution until all threads in in some program defined group
+reach a certain point, upon which all threads in the group proceed to the next
+barrier. The work sharing construct, used in the OpenMP parallel API, divides
+work among a ``team'' of threads and blocks until all threads finish work. Our
+user library support neither of these.
 
-We don't support instruction limits, so malicious or buggy children could
-execute forever, blocking parents indefinitely.
+In his PhD thesis, Aviram classified the types of synchronization abstractions
+used in the SPLASH, NBP-OMP, and PARSEC benchmark
+programs~\cite{aviram2011deterministic}, and the results are summarized in Table
+\ref{tab:synctypes}. The first three rows shows uses of naturally deterministic
+library constructs; these account for 65.5\% of the total. Usages of
+nondeterministic primitives to enforce deterministic behavior by the program
+itself are show in row four. The last row shows
+uses nondeterministic abstractions like mutex locks and condition variables.
+Future version of our user library could implement barriers and the work sharing
+parallel abstractions,
+building upon the {\tt dput()}/{\tt dget()}/{\tt dret()} syscall primitives.
+Doing so would appear to extend the types of parallel
+programs our deterministic Linux could support.\footnote{Assuming the three
+benchmark suites reflect real world parallel programs, as Aviram also
+assumes~\cite{aviram2011deterministic}.}
 
-Implementation is not optimized. Example: killing a child process is
-surprisingly slow (I'd like to find out why, since this should be a very quick
-nonblocking operation).
+Efficiency and overhead are important considerations in the attractiveness of
+our system. As discussed in Section \ref{sec:finetune}, merging on a huge
+region of memory is costly, even if we know at most a page or two of memory
+could possibly have changed. We could enrich our library API to, for example,
+narrow down the region that must be merged. If our kernel implementation allowed
+deterministic processes to use huge pages, we could cut the number of page
+table entries that must be examined by a factor of 500-1000.\footnote{Depending
+on the huge page size (2MB or 4MB).}
 
-\subsection{Future work}
+Since the kernel API provides no direct file system support, our library uses
+an in-memory file system. Our choice to use a Unix-like implementation may not
+be well suited for reconciliation in user-space. If a file's data blocks do not
+reside contiguously in memory, copying a file from a child into the parent may
+require a {\tt dget()} call for each data block. Instead, we could move the
+file system reconciliation logic into the kernel and extend the syscall API. A
+more radical step would be to implement the entire file system itself in the
+kernel, perhaps as part of Linux's Virtual File System API, the generic
+interface to all file systems in Linux~\cite{vfs}.
 
-Recent efforts by Determinator's authors have extended the OS to support
-arbitrary process interactions (not just hierarchical). Determinator and
-deterministic Linux focused on compute-bound applications using fork-join.
-What about I/O intensive apps or other parallel paradigms?
+Our deterministic Linux intentionally did not implement all of Determinator's
+features. Determinator's {\tt Put} can limit the number of instructions a child
+process can execute before an implicit {\tt Ret} is generated. Since
+deterministic Linux does not support this, malicious or buggy children can run
+in an infinite loop, blocking the parent indefinitely. The instruction count
+feature is also crucial in emulating legacy thread APIs. Section 4.5 in Aviram
+et al.'s Determinator paper describes how to implement a deterministic version
+of the pthreads API~\cite{Aviram10}; a deterministic scheduler thread uses the
+instruction count limit to ensure a deterministic (though arbitrary) schedule.
 
 \endinput
 

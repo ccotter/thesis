@@ -49,27 +49,16 @@ all eleven runs are averaged to a single value.
 The \emph{matmult}, \emph{qsort}, and \emph{md5} benchmarks are modified
 versions of benchmarks found in Determinator's source on
 GitHub.~\footnote{\url{https://github.com/bford/Determinator}}
-The \emph{lu} benchmark was written from scratch using an algorithm describe
+The \emph{lu} benchmark was written from scratch using an algorithm described
 on the Internet~\cite{lualg}. We tested on a 2 socket $\times$ 4 core 2.33 GHz
 Intel Xeon PC running Arch Linux with 8GB of RAM. All benchmarks use the same
 modified \mbox{x86\_64} Linux 3.0 kernel.
-
-The deterministic benchmarks create threads by issuing a {\tt dput()} specifying
-the {\tt Snap} option. We join thread results by performing a {\tt Merge} on the
-program's entire static data segment (initialized and uninitialized). Thus,
-deterministic applications incur the performance penalty of creating two copies
-of the parent thread's page tables and associated kernel data structures
-as well as scanning the page tables and potentially the pages
-themselves of the child's entire static data. The pthread programs incur no
-such penalties, since \mbox{{\tt pthread\_create()}} does not make copies of
-page tables and \mbox{{\tt pthread\_join()}} does the same work as {\tt dget()}
-without the {\tt Merge}.
 
 \subsubsection{Results}
 Applications that require a lot of memory synchronization show considerable
 overhead for small inputs, but have much more acceptable overheads for large
 inputs.
-Table \ref{tab:matover} shows deterministic overheads for the \emph{lu} and
+\mbox{Table \ref{tab:matover}} shows deterministic overheads for the \emph{lu} and
 \emph{matmult} benchmarks.
 Inputs smaller than $1024\times 1024$ spend anywhere from $12.6\%$ to $58.2\%$
 of their run time in the kernel doing a memory merge.
@@ -86,7 +75,7 @@ deterministic threads.
 
 The \emph{qsort} benchmark also shows unacceptable overhead for small inputs,
 but once the input array size becomes at least 800K, overheads stayed under
-$2\times$ (Table \ref{tab:qover}).
+$2\times$ (\mbox{Table \ref{tab:qover}}).
 The embarrassingly parallel \emph{md5} benchmark exhibited very little overhead;
 it had overhead of $1.17\times$ for $N=1$ and $1.06\times$ for $N=8$. This
 can likely be attributed to the little amount of information transfered back and
@@ -94,7 +83,7 @@ forth between threads (a single boolean and the matching string when it is
 found).
 
 \input{dspeedup}
-Figure \ref{fig:dspeedup} shows speedup over one CPU for the deterministic
+\mbox{Figure \ref{fig:dspeedup}} shows speedup over one CPU for the deterministic
 benchmarks. We show the results when run on the largest input size available
 (e.g. 80M for \emph{qsort}). The \emph{matmult} benchmark appears to show
 speedup better than the ideal case. This can be attributed to the base case
@@ -106,6 +95,7 @@ reaching $2\times$ when $N=8$. \emph{matmult} shows promise in its ability to
 scale, but we cannot be too sure due to irregular behavior in the base case.
 
 \subsubsection{Fine-tuning the benchmarks}
+\label{sec:finetune}
 The apparent overhead for managing threads in the pthread and deterministic
 benchmarks appears to have affected our results. Deterministic \emph{matmult}
 runs faster for $1024\times 1024$ matrices than the pthread version and appears
@@ -124,8 +114,8 @@ $2048\times 2048$ for a total of 128MB on our 64-bit machine. When we join on
 all 256 threads for the $16\times 16$ input, we merge over all 128MB. Page
 table optimizations (Section \ref{sec:memop}) enable the kernel to only have to
 do a \mbox{byte-by-byte} merge for the single page containing the input matrix,
-but the kernel must still check at least 32767 other page table entries,
-assuming 4KB pages!
+but the kernel must still check at least 32767 other page table
+entries!~\footnote{Assuming 4KB pages.}
 
 Thankfully, the syscall API allows us to specify a range of virtual memory to
 merge; we could fine-tune our programs to merge only what we know has changed.
@@ -135,6 +125,33 @@ table entries and possibly the bytes themselves as {\tt Merge} does. By having
 our high-level join function merge the entire static data segment, our join
 method is very general in the types of programs it can be used with. We could
 likely trade this generality for performance gains.
+
+\subsubsection{Qualitative evaluation}
+This section attempts to give a qualitative understanding of how the benchmarks
+work. Each of our benchmarks uses the fork/join paradigm. The pthread
+applications fork and join threads with \mbox{\tt pthread\_create()} and
+\mbox{\tt pthread\_join()}. The deterministic benchmarks create threads by
+issuing a {\tt dput()} specifying the {\tt Snap} option; we join thread results
+by performing a {\tt Merge} on the
+program's entire static data segment (initialized and uninitialized). At the
+kernel level, creating deterministic threads incurs the additional cost of
+creating two copies of the parent's page tables and associated kernel data
+structures. Since pthreads threads share memory, the kernel merely
+copies a pointer to the parent's memory management structure to the child.
+Joining blocks the parent thread until the child finishes execution. The
+deterministic join, however, incurs the cost of merging a potentially large
+region of memory.
+
+We should also consider an otherwise overlooked overhead associated with
+copy-on-write. When a deterministic child thread writes to page marked COW,
+the kernel intervenes to allocate a new page, copy the page contents, and
+invalidate at least one TLB entry.\footnote{TLB invalidation is a costly
+operation, especially if the CPU only supports invalidating the entire TLB}.
+In fact, tracing through the page fault code and manually counting the number of
+semicolons gives a conservative estimate of 84. A similar trace through
+Determinator's COW code counts only 23 semicolons.
+Thus, for all inputs, and especially the smaller input sizes, we believe
+that COW might contribute a nontrivial amount of overhead.
 
 \subsection{Finding bugs deterministically}
 

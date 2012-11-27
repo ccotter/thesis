@@ -14,7 +14,7 @@ and {\tt dret()}. Our initial focus was adding process management related
 functionality, then we added the {\tt Zero}, {\tt Copy}, and
 {\tt Snapshot/Merge} operations in that order.
 
-\subsection{Process synchronization}
+\subsection{Process organization}
 
 The first step was adding the three new syscalls: {\tt dput()}, {\tt dget()},
 and {\tt dret()}. Our initial focus was process creation and related
@@ -112,8 +112,8 @@ we will give some technical background on Linux's memory subsystem. Our
 implementation reused many existing functions, so this discussion will be
 useful.
 
-\begin{figure}
-\includegraphics[scale=.42]{mm_struct.png}
+\begin{figure}[t]
+\includegraphics[scale=.63]{mm_struct.pdf}
 \caption{Illustration of Linux's memory management data structures.}
 \label{fig:mmstruct}
 \end{figure}
@@ -367,7 +367,7 @@ finishes, it can save the in-memory image back to permanent storage for use
 later.
 
 \subsection{Implementation Statistics}
-We began with a {\tt git} fork of Linux 3.0. Table \ref{tab:loc} lists lines
+We began with a {\tt git} fork of Linux 3.0. \mbox{Table \ref{tab:loc}} lists lines
 of code added (including comments but excluding newlines) for various kernel and
 user library components. The ``new user library'' category counts code added by
 us, and the ``borrowed user library'' category counts code that was reused from

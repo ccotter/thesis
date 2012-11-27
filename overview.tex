@@ -96,7 +96,7 @@ by Aviram et al. Linux supports a wider range of process communication utilities
 including signals, pipes, and System V IPC.
 
 \begin{figure}[t]
-\includegraphics[scale=.33]{anon_vma.png}
+\includegraphics[scale=.39]{anon_vma.pdf}
 \caption{Data structure relationships associated with object-based reverse
 mapping. Two processes map virtual memory to the same page read only (possibly
 at different addresses). In order for the kernel to swap a given page to disk,
@@ -157,7 +157,7 @@ implementing Determinator's three memory operations ({\tt Zero}, {\tt Copy}, and
 \fi
 
 \begin{figure*}[ht]
-\includegraphics[scale=.5]{proc-diagram.png}
+\includegraphics[scale=.65]{proc-diagram.pdf}
 \caption{Illustration of the hybrid process model with two deterministic process
 groups. Legacy nondeterministic processes ({\tt firefox},
 {\tt ssh}) run as children of {\tt init}. {\tt make} and {\tt matmult} are
@@ -192,8 +192,10 @@ To address concerns about Linux's more flexible process model, we present a
 process has full access to the legacy Linux kernel API, with some minor
 restrictions noted below. Master processes then create \emph{deterministic}
 children. We call this master process and its entire subtree a
-\emph{deterministic process group}. Within this process group, processes abide
-by Determinator's nesting rules (e.g. children cannot outlive parents).
+\emph{deterministic process group} (DPG).~\footnote{Our DPGs are unrelated to
+those in Bergan et al.'s ``Deterministic Process Groups in
+dOS''~\cite{bergan2010deterministic}.} Within this process group, processes
+abide by Determinator's nesting rules (e.g. children cannot outlive parents).
 Legacy Linux applications run alongside deterministic applications with
 absolutely no kernel restrictions. In some sense, each deterministic application
 resembles an entire Determinator ``virtual machine'' of sorts.

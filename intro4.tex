@@ -1,6 +1,21 @@
 
 \begin{abstract}
-[to be done]
+This thesis is about designing and implementing a deterministic programming
+model in Linux based on Aviram et al.'s prior work, Determinator. Written from
+the ground up, the Determinator operating system enforces deterministic process
+execution by
+removing implicit sources of nondeterminism (e.g. data races) and enforcing
+strict synchronization rules that permit only ``naturally deterministic''
+scheduling abstractions. Guided by Determinator's principles, we modify
+Linux's process model and kernel interface to enforce determinism on user
+programs, while maintaining backwards compatibility for legacy Linux
+applications. We implement a basic user library for writing deterministic
+applications and extend Determinator's in-memory file system by adding new
+features and making it persistent. Evaluations of compute-bound deterministic
+applications against nondeterministic pthreaded equivalents reveal unacceptable
+overheads for small inputs, but for large inputs, the overhead drops to less
+than $2\times$ and the benchmarks begin to scale reasonably well.
+
 \end{abstract}
 
 \section{Introduction}
