@@ -16,7 +16,15 @@
 %\subsectionfont{\large}
 \titlespacing\section{0pt}{120pt plus 4pt minus 2pt}{-60pt plus 2pt minus 2pt}
 
+\makeatletter
+\renewcommand\footnoterule{%
+  \kern-3\p@
+  \hrule\@width \linewidth
+  \kern2.6\p@}
+\makeatother
+
 \begin{document}
+\interfootnotelinepenalty=10000
 
 \date{} % No title.
 \title{\large \bf Enforced Deterministic Program Execution in the Linux Kernel}
@@ -51,5 +59,7 @@ University of Texas
 \bibliography{proposal}
 \end{flushleft}
 }
+
 \label{p:last}
 \end{document}
+

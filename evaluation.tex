@@ -119,12 +119,12 @@ entries!~\footnote{Assuming 4KB pages.}
 
 Thankfully, the syscall API allows us to specify a range of virtual memory to
 merge; we could fine-tune our programs to merge only what we know has changed.
-For the \emph{qsort} benchmark, we could opt to use the {\tt Copy} to achieve
-the same effect. {\tt Copy} copies page tables directly without checking page
-table entries and possibly the bytes themselves as {\tt Merge} does. By having
-our high-level join function merge the entire static data segment, our join
-method is very general in the types of programs it can be used with. We could
-likely trade this generality for performance gains.
+For the \emph{qsort} benchmark, we could opt to use the {\tt Copy} option to
+achieve the same effect. {\tt Copy} copies page tables directly without checking
+page table entries and possibly the bytes themselves as {\tt Merge} does. By
+having our high-level join function merge the entire static data segment, our
+join method is very general in the types of programs it can be used with. We
+could likely trade this generality for performance gains.
 
 \subsubsection{Qualitative evaluation}
 This section attempts to give a qualitative understanding of how the benchmarks
@@ -146,12 +146,12 @@ We should also consider an otherwise overlooked overhead associated with
 copy-on-write. When a deterministic child thread writes to page marked COW,
 the kernel intervenes to allocate a new page, copy the page contents, and
 invalidate at least one TLB entry.\footnote{TLB invalidation is a costly
-operation, especially if the CPU only supports invalidating the entire TLB}.
+operation, especially if the CPU only supports invalidating the entire TLB.}
 In fact, tracing through the page fault code and manually counting the number of
 semicolons gives a conservative estimate of 84. A similar trace through
 Determinator's COW code counts only 23 semicolons.
-Thus, for all inputs, and especially the smaller input sizes, we believe
-that COW might contribute a nontrivial amount of overhead.
+Thus, for all inputs, and especially the smaller input sizes, we suspect
+that COW contributes a nontrivial amount of overhead.
 
 \subsection{Finding bugs deterministically}
 

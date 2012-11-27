@@ -1,8 +1,21 @@
 
 \section{Related Work}
 
-\subsection{Tools to alleviate nondeterminism}
-Record-and-replay
+Many systems attempt to alleviate and control the effects of nondeterminism.
+The Velodrome~\cite{flanagan2008velodrome} and
+SingleTrack~\cite{sadowski2009singletrack} tools dynamically check atomicity and
+determinism constraints in user programs to report possible race conditions or
+the potential to execute nondeterministically. Replay debuggers like Instant
+Replay~\cite{leblanc1987debugging} record all relevant inputs and thread
+interactions to execute a program in a repeatable fashion for debugging
+purposes. However, these tools are expensive in terms of run time overhead and
+storage. None of these tools do anything to fix the inherently
+nondeterministic environment in which developers write programs.
+
+Bocchino et al. provide deterministic language extensions to Java at the cost
+of having to rewrite parallel applications using new a new type
+system~\cite{bocchino2009type}.
+
 
 \subsection{Similar deterministic environments}
 Kendo, dOS, CoreDET, DPJ, ...
