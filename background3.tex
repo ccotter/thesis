@@ -127,8 +127,7 @@ synchronization.~\cite{Aviram10}.
 Traditional multithreaded synchronization abstractions are often neither
 deterministic nor predictable. Random hardware races determine the next thread
 to acquire a mutex lock. Some deterministic schedulers synthesize an arbitrarily
-repeatable acquisition; Kendo uses instruction counting as logical time to
-determine whose turn it is~\cite{olszewski2009kendo}). However, small
+repeatable acquisition. However, small
 perturbations in input can lead to radically different schedules. This approach
 \emph{manages} nondeterminism instead of \emph{removing} it.
 

@@ -14,11 +14,20 @@ nondeterministic environment in which developers write programs.
 
 Bocchino et al. provide deterministic language extensions to Java at the cost
 of having to rewrite parallel applications using new a new type
-system~\cite{bocchino2009type}.
+system~\cite{bocchino2009type}. Environments like RCDC~\cite{devietti2011rcdc}
+and DMP~\cite{Devietti09} provide determinism with specialized hardware.
+CoreDet builds on DMP by removing the reliance on custom hardware, instead using
+the LLVM compiler~\cite{lattner2004llvm} and a runtime to provide
+determinism~\cite{bergan2010coredet}.
 
-
-\subsection{Similar deterministic environments}
-Kendo, dOS, CoreDET, DPJ, ...
+CoreDet, DMP, and Grace~\cite{berger2009grace} provide user space deterministic
+schedulers for C/C++ programs. However, wild pointer writes can corrupt the
+scheduler. Kendo~\cite{olszewski2009kendo} provides a relaxed determinism model:
+programs that correctly protect critical sections of code execute
+deterministically by synthesizing an arbitrary lock acquisition order based on
+instruction counting. Unprotected access to shared variables, however, will lead
+to nondeterministic traces, owing to data races. None of these systems are able
+to enforce determinism on \emph{arbitrary} user programs as Determinator does.
 
 \endinput
 
