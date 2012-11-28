@@ -1,5 +1,6 @@
 
 \section{Background}
+\label{sec:bg}
 
 With an understanding of the goal of this thesis, we will now discuss the
 benefits of deterministic execution. Then, we will present the Determinator
@@ -160,7 +161,7 @@ processes and threads, the Determinator kernel calls all executable "tasks"
 \emph{spaces}. The user library (described in the next section) uses kernel
 spaces to create the process and thread abstraction, but the kernel is unaware
 of the distinction.
-Spaces cannot outlive their parents and can communicate only with their
+Spaces cannot outlive their parent and can communicate only with their
 parent and children. The kernel adopts a \emph{private workspace model} and
 ``provides no file systems, writable shared
 memory, or other abstractions that imply globally shared state.'' Only ``the
@@ -169,8 +170,8 @@ inputs''~\cite{Aviram10}. It is this root space that can control explicitly
 nondeterministic inputs like network packets. All other spaces must
 communicate directly or indirectly with the root space to access I/O devices.
 
-\input{tbl1}
-\input{tbl2}
+\input{detsyscalls}
+\input{detopts}
 
 \paragraph{Kernel interface} Spaces communicate with the kernel via three
 syscalls: {\tt Put}, {\tt Get}, {\tt Ret}. Tables \ref{tab:syscalls} and
