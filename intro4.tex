@@ -11,9 +11,9 @@ Linux's process model and kernel interface to enforce determinism on user
 programs, while maintaining backwards compatibility for legacy Linux
 applications. We implement a basic user library for writing deterministic
 applications and extend Determinator's in-memory file system by adding new
-features and making it persistent. Evaluations of compute-bound deterministic
-applications against nondeterministic pthreaded equivalents reveal unacceptable
-overheads for small inputs, but for large inputs, the overhead drops to less
+features and giving it persistence. Evaluations of compute-bound deterministic
+applications against nondeterministic equivalents reveal unacceptable
+overheads for small inputs; for large inputs, the overhead drops to less
 than $2\times$ and the benchmarks begin to scale reasonably well.
 
 \end{abstract}
@@ -41,20 +41,20 @@ overhead and do not offer any insight into the inherently nondeterministic
 behavior of a program. Systems that rely on a deterministic
 scheduler residing in user space are often arbitrary and
 unpredictable~\cite{olszewski2009kendo}; buggy or malicious application code
-can compromise the scheduler~\cite{Aviram10,cui2010stable}.  Some relaxed
-deterministic models only enforce determinism on synchronization and permit
-unsynchronized low-level memory accesses~\cite{olszewski2009kendo}, thus leading
-to nondeterministic traces in programs that do not properly protect critical
-sections.
+can compromise the scheduler~\cite{Aviram10,cui2010stable,bergan2010coredet}. 
+Some relaxed deterministic models only enforce determinism on synchronization
+and permit unsynchronized low-level memory accesses~\cite{olszewski2009kendo},
+thus leading to nondeterministic traces in programs that do not properly protect
+critical sections.
 
 To overcome the challenges of nondeterminism, Aviram et al. presented a
 deterministic operating system called Determinator~\cite{Aviram10}.
 Programmers write parallel applications using a novel parallel programming model
 that is ``naturally and pervasively deterministic'' and in fact predictable.
-Determinator run programs written in general-purpose languages on
-conventional hardware and enforces determinism at the system level.
-Determinator also contributes a high-level library with familiar abstractions
-and an in-memory file system.
+By enforcing determinism at the system level, Determinator run programs written
+in general-purpose languages on conventional hardware.
+Determinator builds a high-level library that provides familiar parallel
+abstractions and an in-memory file system.
 Evaluations of Determinator against Linux show that such a model can be
 implemented to run coarse-grained parallel applications efficiently with little
 overhead, but fine-grained parallel applications have unacceptable overhead.
@@ -90,40 +90,42 @@ overhead, but fine-grained parallel applications have unacceptable overhead.
 * Programmers must worry about hardware side effects like ordering of committing
   memory operations,
 * Debugging and quality assurance are difficult without repeatability.
-\fi
 
 For a deterministic Linux, we prefer strong determinism
 that is predictable and enforced by the system. Our choice is
 affirmed by Bochino et al., who claim that all parallel programming environments
 must be ``deterministic by default''~\cite{bocchino2009parallel}.
+\fi
 
 This thesis is about adapting Determinator's operating system design and
 programming model to Linux. We make the following contributions:
 \begin{myitemize4}
-    \item A presentation of a deterministic Linux kernel heavily based on that
-    of the Determinator kernel. This is the first known adaptation of
+    \item A presentation of a deterministic Linux kernel heavily based on
+    the Determinator kernel. This is the first known adaptation of
     Determinator's kernel design in a widely deployed operating system.
     The bulk of the work in this area is implementation of an existing model.
     Additionally, we identify and eliminate Linux-specific sources of
-    nondeterminism and contribute the \emph{hybrid process} model, an
-    enhancement of Determinator's \emph{private workspace}. This allows
-    us to run legacy nondeterministic and deterministic applications
-    side-by-side in Linux.
-    \item A deterministic high-level user library for deterministic Linux
-    applications. This library is motivated by Determinator's user library, and
+    nondeterminism and present the \emph{hybrid process model}, an
+    enhancement of Determinator's \emph{nested workspace model}. Then end
+    result is that we can run legacy nondeterministic applications alongside
+    deterministic applications in Linux.
+    \item A deterministic high-level user library for Linux applications.
+    This library is motivated by Determinator's user library, and
     again the bulk of the work in this area is implementation.
     \item An improvement of Determinator's in-memory file system.
     Determinator's file system maps a fixed number of files to static locations
     in memory and does not provide persistence. Our file system is modeled on
     the BSD Fast File System~\cite{mckusick1984fast}; thus, we support features
-    like hard-linking and dynamic allocation of data blocks. Moreover, we
-    provide persistence by saving the in-memory file system to Linux's
-    disk-backed file system.
+    like hard-linking and dynamic allocation of data blocks. We also provide
+    persistence by saving the in-memory file system to Linux's disk-backed file
+    system.
     \item An evaluation of deterministic Linux against traditional
-    nondeterministic parallel Linux. [preview what we found] We also demonstrate
-    a case study of the benefits of determinism by exhibiting a bug that
-    manifests nondeterministically in legacy Linux, but deterministically in
-    deterministic Linux.
+    nondeterministic parallel Linux. We ran compute-bound parallel benchmarks
+    and found that small input sizes incur unacceptable overheads of up to
+    $39.2\times$ for the smallest input size. However, the overheads drop to
+    less than $1.3\times$ for the largest inputs when run on multiple
+    processors. We also demonstrate a case study of the qualitative benefits of
+    determinism by studying a buggy parallel Gaussian elimination program.
 \end{myitemize4}
 
 \iffalse
@@ -163,6 +165,8 @@ able to influence how future parallel applications are written.
   huge next step.
 
 \fi
+
+[preview rest of paper]
 
 \endinput
 
