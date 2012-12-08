@@ -19,7 +19,7 @@ deterministically. In order to take advantage of determinism in
 Linux, legacy programs must be rewritten using the new operating system
 abstractions.
 
-We would also like to write a user level C library and an in-memory file system
+We would also like to write a user-level C library and an in-memory file system
 based on those of Determinator.
 To address Determinator's in-memory file system's limitations~\cite{Aviram10,
 Aviram10cloud}, we would like to improve the file system by adapting
@@ -54,15 +54,15 @@ of our primary goal.
 	\begin{itemize}
 		\item Make Linux x86\_64 deterministic by adopting Determinator's OS design.
 		\item Legacy Linux programs will behave as usual, but deterministic Linux
-			programs might only support a subset of Linux's features (e.g. no huge page
+			programs might only support a subset of Linux's features (e.g., no huge page
 			tables).
 		\item Make no attempt to replicate Determinator's distributed computing
 			aspects.
-		\item Write C user library with familiar abstractions (e.g. fork/join) and
+		\item Write C user library with familiar abstractions (e.g., fork/join) and
 			in memory file system, again based on that of Determinator. This user library
 			is a layer on top of Determinator's three syscall interface.
 		\item Runtime environment features might be reduced for deterministic programs
-			(e.g. no shared library support, won't support standard C library
+			(e.g., no shared library support, won't support standard C library
 			functions).
 	\end{itemize}
 \fi
@@ -92,7 +92,7 @@ Since Determinator was
 written from scratch, the designers addressed sources of nondeterminism by
 simply not providing kernel support for such features. On the other hand,
 Linux's existing threading model is inherently nondeterministic and already
-provides extensive support for nondeterministic features (e.g. the
+provides extensive support for nondeterministic features (e.g., the
 {\tt gettimeofday()} syscall). We must also address nondeterminism not covered
 by Aviram et al. Linux supports a wider range of process communication utilities
 including signals, pipes, and System V IPC.
@@ -100,18 +100,20 @@ including signals, pipes, and System V IPC.
 \begin{figure}[t]
 \includegraphics[scale=.39]{anon_vma.pdf}
 \caption{Data structure relationships associated with object-based reverse
-mapping. Two processes map virtual memory to the same page read only (possibly
+mapping. The {\tt struct page} C type encapsulates information about every
+page frame of physical memory.
+Two processes map virtual memory to the same page read-only (possibly
 at different addresses). In order for the kernel to swap a given page to disk,
 object-based reverse mapping assumes each process maps the page to
-\mbox{{\tt vm\_area\_struct->start\_addr} + {\tt page->index}} in virtual
+\mbox{{\tt vm\_area\_struct->vm\_start} + {\tt page->index}} in virtual
 memory.}
 \label{fig:anon_vma}
 \end{figure}
 
 \paragraph{Memory subsystem} Linux supports a wide range of virtual memory
-features including memory mapped files, huge pages, and swapping to disk. All
+features including memory-mapped files, huge pages, and swapping to disk. All
 of these features are layered on top of an abstraction for supporting memory
-management units of many different processor architectures (e.g. x86\_64,
+management units of many different processor architectures (e.g., x86\_64,
 Alpha). Whereas Determinator's memory management subsystem deals
 only with page table management for a single architecture, Linux's memory
 subsystem uses more complicated data structures and nontrivial algorithms.
@@ -171,8 +173,8 @@ processes) are isolated from the rest of the system.}
 \paragraph{Standard C Library} Many Linux applications written in C use
 the standard C library. This library in large part functions as a wrapper around
 legacy Linux syscalls and thus is highly nondeterministic. Whereas some
-functions, such as {\tt strlen()} might not use nondeterministic syscalls, many
-other functions do use nondeterministic syscalls (e.g. {\tt printf()}). Thus,
+functions, such as {\tt strlen()}, might not use nondeterministic syscalls, many
+other functions do use nondeterministic syscalls (e.g., {\tt printf()}). Thus,
 deterministic programs may be forced to use a completely different library.
 Moreover, libraries in Linux are often linked dynamically with shared
 libraries, but since Determinator does not provide any native kernel support for
@@ -194,10 +196,10 @@ To address concerns about Linux's more flexible process model, we present a
 process has full access to the legacy Linux kernel API, with some minor
 restrictions noted below. Master processes then create \emph{deterministic}
 children. We call this master process and its entire subtree a
-\emph{deterministic process group} (DPG).~\footnote{Our DPGs are unrelated to
+\emph{deterministic process group} (DPG).\footnote{Our DPGs are unrelated to
 those in Bergan et al.'s ``Deterministic Process Groups in
 dOS''~\cite{bergan2010deterministic}.} Within this process group, processes
-abide by Determinator's nesting rules (e.g. children cannot outlive parents).
+abide by Determinator's nesting rules (e.g., children cannot outlive parents).
 Legacy Linux applications run alongside deterministic applications with
 absolutely no kernel restrictions. In some sense, each deterministic application
 resembles an entire Determinator ``virtual machine'' of sorts.
@@ -206,8 +208,8 @@ We also add three new syscalls, {\tt dput()}, {\tt dget()}, and {\tt dret()}
 and restrict deterministic processes to only use the new syscalls. These
 syscalls function exactly as their Determinator counterparts, excepting cluster
 support, the copy (grand)child subtree option, and instruction count limits.
-By restricting deterministic processes to these three syscalls, we can nearly
-remove all sources of nondeterminism; we only have to modify the kernel to
+By restricting deterministic processes to these three syscalls, we can remove
+nearly all sources of nondeterminism; we only have to modify the kernel to
 ignore all signals sent to deterministic processes, and thus we have effectively
 blocked all sources of nondeterminism. Figure \ref{fig:proc-diagram} illustrates
 the hybrid process model in a hypothetical environment.
@@ -239,13 +241,13 @@ We limit root processes in certain ways
 At the expense of predictability, but without harming determinism, master
 processes can use nonblocking {\tt dput()} and {\tt dget()} (invoked with a 
 special flag) to poll whether or not the child process has reached a
-synchronization point yet. We have to chosen to allow this, since some parallel
-applications fail to exploit optimal concurrency in Determinator's design.
-Since threads are responsible for scheduling children, a CPU might become
-available while the scheduler thread remains blocked waiting for another thread
-to finish. Applications that use the nonblocking syscalls
-can still log schedule sequences to reproduce program output in a deterministic
-fashion.
+synchronization point yet. Since programs are responsible for scheduling
+children, a CPU might become available while the scheduler thread remains
+blocked waiting for another thread to finish. This would be useful in a
+parallel {\tt make} program~\cite{Aviram10} or a web server that needs to be
+responsive to incoming requests. Applications that use the
+nonblocking syscalls can still log schedule sequences to reproduce program
+output in a deterministic fashion.
 
 We also allow signals to reach master processes. Master processes can
 specify a set of signals that can interrupt a blocking {\tt dput()} or
@@ -258,7 +260,7 @@ an application immediately.
 Once this kernel work is done, we begin work on a C user library. Deterministic
 applications won't use the standard C library, because many library calls
 invoke disallowed legacy syscalls. Unfortunately, many functions must be
-rewritten (e.g. {\tt sprintf()}, {\tt strlen()}).
+rewritten (e.g., {\tt sprintf()}, {\tt strlen()}).
 
 To increase the usefulness of the system, we provide an in-memory file system
 just as Determinator does. Whereas Determinator's file system uses fixed file

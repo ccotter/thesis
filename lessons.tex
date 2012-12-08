@@ -1,7 +1,7 @@
 
 \section{Reflections on my research experience}
 Before we conclude, this section will reflect on the undergraduate research
-journey as experience by the author, Chris Cotter. I initially read
+journey as experienced by the author, Chris Cotter. I initially read
 Aviram et al.'s ``Efficient System-Enforced Deterministic Parallelism'' paper
 in July of 2011 and wrote my first line of code in the Linux kernel that August.
 After many implementation iterations, my final implementation of deterministic
@@ -18,7 +18,7 @@ Linux.
 \subsection{First Iteration}
 In August 2011, I began by downloading Linux 2.6.32 source and learned to
 compile and run the kernel with {\tt QEMU}~\cite{qemu}. I ran
-{\tt QEMU} with an ramdisk containing a single program to run as \emph{init}.
+{\tt QEMU} with a ramdisk containing a single program to run as \emph{init}.
 My advisor Mike Walfish gave me my first goal: to implement a new syscall
 in Linux. After scouring the Internet, I learned how to do this, and I wrote
 skeleton code for my three syscalls: {\tt dput()}, {\tt dget()}, and
@@ -28,7 +28,7 @@ I iteratively implemented Determinator's functionality in these syscalls,
 starting with process organization and moving to memory operations. I had a
 particularly difficult time with memory operations. Even though I was a wizard
 with my operating system's instructional {\tt JOS} OS and page table management,
-I had no idea how to maneuver Linux's memory subsystem.
+I had no idea how to maneuver in Linux's memory subsystem.
 
 After fumbling around with countless kernel panics, I set out with a simple
 goal: to change a single page table entry. After accomplishing this goal,
@@ -52,9 +52,8 @@ encountered many setbacks.
 \paragraph{New Memory Features}
 Moving from Linux 2.6.32 to 2.6.38 introduced new memory subsystem features.
 Notable among these was transparent huge pages (THP). When processes map a large
-enough region of virtual memory (e.g. at least 4MB), the kernel will sometimes
-fulfill demand paging requests with huge pages transparently without the user
-knowing the difference.
+enough region of virtual memory (e.g., at least 4MB), the kernel will sometimes
+fulfill demand paging requests with huge pages without the user knowing.
 
 Since my original code did not account for THP, a lot of my existing kernel code
 broke, and I spent days trying to understand what went wrong and perhaps a week
@@ -70,9 +69,9 @@ implementation of {\tt dput()} synchronization, and I found threads being
 woken up prematurely.
 
 \paragraph{Snapshot/Merge Bug}
-When I ran a stress test to fork hundreds of processes than did a simple
+When I ran a stress test to fork hundreds of processes then did a simple
 Snapshot and Merge, I encountered a kernel panic that caused unrelated processes
-to crash (i.e. {\tt bash}). Through the course of a month, I never identified
+to crash (e.g., {\tt bash}). Through the course of a month, I never identified
 the issue except to say that my lack of a thorough understanding of the memory
 subsystem was at fault. This, and a general lack of organization in my code lead
 me to write a third iteration.
@@ -81,7 +80,7 @@ me to write a third iteration.
 In September 2012, I forked a copy of the Linux {\tt git} repository and
 started with Linux 3.0. I started running my code on an 8-core machine with
 8GB of RAM; the 8 cores maximized parallelism to help expose concurrency
-bugs in my kernel code. I also decided to do a complete rewrite - no old code
+bugs in my kernel code. I also decided to do a complete rewrite --- no old code
 from previous iterations would be copied and pasted.
 
 After a year of kernel hacking, I had never felt more confident in the code I
@@ -90,10 +89,10 @@ correctness, in my third iteration I could explain nearly every part of the
 kernel that my code interacted with.
 
 \paragraph{General Success}
-As I wrote and tested code, I often found that my code the first or second
-try. This was primarily due to careful and thoughtful reasoning about anything
-I wrote. In previous iterations, I often wrote code and ran it without fully
-knowing what to expect.
+As I wrote and tested code, I often found that my code worked on the first or
+second try. This was primarily due to careful and thoughtful reasoning about
+anything I wrote. In previous iterations, I often wrote code and ran it without
+fully knowing what to expect.
 
 \paragraph{Squashing the Snapshot Bug}
 Through the process of rewriting, I identified the Snapshot/Merge bug described

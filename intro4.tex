@@ -4,7 +4,7 @@ This thesis is about designing and implementing a deterministic programming
 model in Linux based on Aviram et al.'s prior work, Determinator. Written from
 the ground up, the Determinator operating system enforces deterministic process
 execution by
-removing implicit sources of nondeterminism (e.g. data races) and enforcing
+removing implicit sources of nondeterminism (e.g., data races) and enforcing
 strict synchronization rules that permit only ``naturally deterministic''
 scheduling abstractions. Guided by Determinator's principles, we modify
 Linux's process model and kernel interface to enforce determinism on user
@@ -51,7 +51,7 @@ To overcome the challenges of nondeterminism, Aviram et al. presented a
 deterministic operating system called Determinator~\cite{Aviram10}.
 Programmers write parallel applications using a novel parallel programming model
 that is ``naturally and pervasively deterministic'' and in fact predictable.
-By enforcing determinism at the system level, Determinator run programs written
+By enforcing determinism at the system level, Determinator runs programs written
 in general-purpose languages on conventional hardware.
 Determinator builds a high-level library that provides familiar parallel
 abstractions and an in-memory file system.
@@ -63,7 +63,7 @@ overhead, but fine-grained parallel applications have unacceptable overhead.
 # Determinator
 * Aviram et al. presented a deterministic operating system called Determinator.
 * Programs are written using a novel parallel programming model that is
-  "naturally and pervasively deterministic" and in fact is predictable.
+  ``naturally and pervasively deterministic'' and in fact is predictable.
 * Through a three syscall approach, the Determinator microkernel can run
   programs written in general-purpose languages like C on conventional hardware.
 * Determinator also contributed a high level library with familiar abstractions
@@ -154,8 +154,8 @@ able to influence how future parallel applications are written.
 \iffalse
 
 # Why?
-* Aviram et al. were motivated by meeting the "software development, debugging,
-  and security challenges" for parallel applications of the future. Determinator
+* Aviram et al. were motivated by meeting the ``software development, debugging,
+  and security challenges'' for parallel applications of the future. Determinator
   was a step towards this.
 * Determinator itself has limited uptake, since it was written from scratch in
   an academic environment.

@@ -157,7 +157,7 @@ the child process ID to {\tt fork()}.
 
 Determinator organizes processes in a hierarchical, nested
 process model~\cite{Ford96,Aviram10}. To differentiate between the notion of
-processes and threads, the Determinator kernel calls all executable "tasks"
+processes and threads, the Determinator kernel calls all executable ``tasks''
 \emph{spaces}. The user library (described in the next section) uses kernel
 spaces to create the process and thread abstraction, but the kernel is unaware
 of the distinction.
@@ -185,8 +185,8 @@ Determinator enforces a deterministic schedule by requiring programs to
 explicitly define synchronization points. Parents start children by issuing a
 {\tt Put} with the {\tt Start} option. Subsequent calls to {\tt Put} and
 {\tt Get} block until the child stops. The child executes until it issues a
-{\tt Ret}. Processor exceptions (e.g. divide by zero) generate an implicit
-{\tt Ret} that must be acknowledge and handled by the parent.
+{\tt Ret}. Processor exceptions (e.g., divide by zero) generate an implicit
+{\tt Ret} that must be acknowledged and handled by the parent.
 
 A space's state is composed of its register values and virtual memory.
 The {\tt Regs} option copies register state between a parent and child.
@@ -206,14 +206,14 @@ library implementation of fork/join. Threads fork children with a
 {\tt Put} specifying the {\tt Snap} option and join by merging changes back into
 itself.
 
-The kernel implements {\tt Merge} efficiently by examining page table entires.
+The kernel implements {\tt Merge} efficiently by examining page table entries.
 Using the copy-on-write optimization, snapshot is implemented by making two
 copies of the page tables and saving them in the child, one copy for the child's
 private memory and the other as a reference for later comparison. At merge time,
 the kernel scans the parent, child, and reference page tables. If only the child
 has written to a page, the page is copied via copy-on-write to the parent. If
-both the parent and child have written to a page, then the kernel must do a byte
-granular diff.
+both the parent and child have written to a page, then the kernel must do a
+byte-granular diff.
 
 Aviram et al. conclude their discussion of Determinator's kernel by mentioning
 that the three syscall primitives ``reduce to blocking, one-to-one message

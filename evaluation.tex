@@ -9,13 +9,14 @@ benefits of determinism.
 
 \subsection{Empirical experiments}
 
-Aviram et al. already demonstrated course-grained applications in Determinator
+Aviram et al. already demonstrated coarse-grained applications in Determinator
 performed comparable to nondeterministic Linux equivalents, but fine-grained
 applications did not scale nearly as well, incurring high performance costs
 owing to memory synchronization costs.
 
 \input{matoverhead}
 \input{qoverhead}
+\input{dspeedup}
 
 The primary goal of our evaluations is to determine if Linux can efficiently run
 applications using Determinator's programming model. Since the deterministic
@@ -26,30 +27,34 @@ Snapshot/Merge might incur performance penalties.
 
 \subsubsection{Methodology}
 We evaluated four benchmark programs. \emph{md5} searches for a string whose
-md5 hash yields a particular hash value (i.e. a brute force password cracker).
+md5 hash yields a particular hash value (i.e., a brute force password cracker).
 \emph{md5} creates $N+1$ threads to perform parallel work where $N$ is the
 number of processors available. The \emph{qsort} benchmark recursively sorts an
 integer array by forking children threads going $log_2(2\cdot N)$ levels deep,
 after which the recursive computation is carried out sequentially.
 \emph{matmult} multiplies two square matrices by dividing the input into
-64 blocks and forking off threads to multiply the individual blocks. \emph{lu}
-performs LU decomposition of a square matrix by breaking the input into 256
-blocks and creating a thread for each block. Our LU algorithm breaks the blocks
-up into discontiguous blocks of memory (i.e. we represent our matrix in
-row-major order).
+blocks and forking off threads to multiply the individual blocks. \emph{matmult}
+creates a block for each available core. \emph{lu}
+performs LU decomposition of a square matrix by breaking the input into $4N^2$
+blocks and creating a thread for each block.\footnote{Threads are created only
+when data dependencies are satisfied. In our program, each row of blocks has a
+data dependency on the row above, so at any given point in the program,
+\emph{lu} creates at most $2N$ threads.}
+Our LU algorithm breaks the blocks up into discontiguous blocks of memory (i.e.,
+we represent our matrix in row-major order).
 
 All benchmarks are designed so the deterministic and pthread versions operate on
 identical inputs generated from a pseudorandom number generator (\emph{matult},
-\emph{lu}, \emph{qsort}) or "hardcoded" input (\emph{md5}).
-For a given input size, \emph{qsort} runs three tests on different inputs and
+\emph{lu}, \emph{qsort}) or ``hardcoded'' input (\emph{md5}).
+For a given input size, \emph{qsort} runs ten tests on different inputs and
 averages the run times. Both matrix benchmarks run ten tests on different inputs
-and average the results. \emph{md5} searches for eleven fixed ASCII strings
+and average the results. \emph{md5} searches for ten fixed ASCII strings
 whose values are distributed randomly over a fixed alphabet. The run times for
-all eleven runs are averaged to a single value.
+all ten runs are averaged to a single value, and this is done five times.
 
 The \emph{matmult}, \emph{qsort}, and \emph{md5} benchmarks are modified
 versions of benchmarks found in Determinator's source on
-GitHub.~\footnote{\url{https://github.com/bford/Determinator}}
+GitHub.\footnote{\url{https://github.com/bford/Determinator}}
 The \emph{lu} benchmark was written from scratch using an algorithm described
 on the Internet~\cite{lualg}. We tested on a 2 socket $\times$ 4 core 2.33 GHz
 Intel Xeon PC running Arch Linux with 8GB of RAM. All benchmarks use the same
@@ -59,53 +64,42 @@ modified \mbox{x86\_64} Linux 3.0 kernel.
 Applications that require a lot of memory synchronization show considerable
 overhead for small inputs, but have much more acceptable overheads for large
 inputs.
-\mbox{Table \ref{tab:matover}} shows deterministic overheads for the \emph{lu} and
-\emph{matmult} benchmarks.
-Inputs smaller than $1024\times 1024$ spend anywhere from $12.6\%$ to $58.2\%$
-of their run time in the kernel doing a memory merge.
+\mbox{Table \ref{tab:matover}} shows deterministic overheads for the \emph{lu}
+and \emph{matmult} benchmarks.
+Execution on small inputs spends up to $48.2\%$ of their run time in the kernel
+doing a memory merge.
 Small inputs in general have a hard time seeing parallel benefits: the pthread
 versions of both benchmarks did not see parallel speedup benefits until the
-input matrix reached at least $64\times 64$. Still, it isn't until even larger
-input sizes (at least $1024\times 1024$) when we begin to
-see more "acceptable" deterministic overheads of at
-most $2.1\times$ for $N>1$. \emph{matmult}
-performs better than pthreads on the largest input size $1024\times 1024$; we
-cannot account for this, but a good place to begin investigating this
-occurrence might be comparing how the kernel schedules pthreads threads and
-deterministic threads.
+input matrix reached at least $32\times 32$ (\emph{matmult}) or $128\times 128$
+(\emph{lu}). Still, it isn't until even larger
+input sizes (at least $1024\times 1024$ for \emph{lu} and $256\times 256$ for
+\emph{matmult}) when we begin to
+see more ``acceptable'' deterministic overheads of at
+most $2.3\times$.
 
 The \emph{qsort} benchmark also shows unacceptable overhead for small inputs,
 but once the input array size becomes at least 800K, overheads stayed under
 $2\times$ (\mbox{Table \ref{tab:qover}}).
 The embarrassingly parallel \emph{md5} benchmark exhibited very little overhead;
-it had overhead of $1.17\times$ for $N=1$ and $1.06\times$ for $N=8$. This
+it had overhead of $1.16\times$ for $N=1$ and $1.05\times$ for $N=8$. This
 can likely be attributed to the little amount of information transfered back and
 forth between threads (a single boolean and the matching string when it is
 found).
 
-\input{dspeedup}
-\mbox{Figure \ref{fig:dspeedup}} shows speedup over one CPU for the deterministic
-benchmarks. We show the results when run on the largest input size available
-(e.g. 80M for \emph{qsort}). The \emph{matmult} benchmark appears to show
-speedup better than the ideal case. This can be attributed to the base case
-$N=1$ running exceptionally slow. \emph{matmult} always creates 64 threads, and
-we believe the overhead of managing 64 threads with a single processor plus the
-cost of merging adds significant overhead. \emph{md5} scales well,
-\emph{lu} shows less scalability, and \emph{qsort} scales poorly, barely
-reaching $2\times$ when $N=8$. \emph{matmult} shows promise in its ability to
-scale, but we cannot be too sure due to irregular behavior in the base case.
+\mbox{Figure \ref{fig:dspeedup}} shows speedup over one CPU for the
+deterministic benchmarks. We show the
+results when run on the largest input size available
+(e.g., 80M for \emph{qsort}). The \emph{md5}, \emph{lu}, and \emph{matmult}
+benchmarks scale well, and \emph{qsort} scales poorly, not even
+reaching $2\times$ when $N=8$. \mbox{Figure \ref{fig:scale}} compares
+scalability of the pthreads benchmarks against the deterministic versions.
+In all four benchmarks, we see that the deterministic programs have about the
+same ability to scale as the pthread programs. For \emph{lu} and \emph{md5},
+the deterministic versions scale better due to high overheads in the $N=1$
+case that diminish as we add more CPU cores.
 
 \subsubsection{Fine-tuning the benchmarks}
 \label{sec:finetune}
-The apparent overhead for managing threads in the pthread and deterministic
-benchmarks appears to have affected our results. Deterministic \emph{matmult}
-runs faster for $1024\times 1024$ matrices than the pthread version and appears
-to scale better than the ideal case. Regardless of the number of available
-processors, the main thread in both matrix benchmarks starts by forking a large
-number of threads (64 for \emph{matmult}, 256 for \emph{lu}), then joining on
-each thread. A more sane approach might be to base the number of threads created
-on $N$. We could also distribute a large number of tasks among a thread pool.
-
 We may attribute some of the exceptionally high overhead for small inputs to
 the cost of merging. For simplicity, our deterministic thread join merges the
 entire static data segment. \emph{qsort}, \emph{matmult}, and \emph{lu} all
@@ -116,7 +110,7 @@ all 256 threads for the $16\times 16$ input, we merge over all 128MB. Page
 table optimizations (Section \ref{sec:memop}) enable the kernel to only have to
 do a \mbox{byte-by-byte} merge for the single page containing the input matrix,
 but the kernel must still check at least 32767 other page table
-entries!~\footnote{Assuming 4KB pages.}
+entries for each merge!\footnote{Assuming 4KB pages.}
 
 Thankfully, the syscall API allows us to specify a range of virtual memory to
 merge; we could fine-tune our programs to merge only what we know has changed.
@@ -126,6 +120,8 @@ page table entries and possibly the bytes themselves as {\tt Merge} does. By
 having our high-level join function merge the entire static data segment, our
 join method is very general in the types of programs it can be used with. We
 could likely trade this generality for performance gains.
+
+\input{scale}
 
 \subsubsection{Qualitative evaluation}
 This section attempts to give a qualitative understanding of how the benchmarks
@@ -165,6 +161,8 @@ algorithms create \mbox{\tt nrows - k} worker threads but only join
 \mbox{\tt nrows - k - 1} threads. We purposefully inserted this bug, but the
 reader can imagine a programmer making this typo by mistake.
 
+\input{gauss}
+
 We ran both versions multiple times and examined the resulting matrix.
 The deterministic program \emph{always}
 produced the wrong answer. {\tt djoin()} merges changes back into the main
@@ -188,8 +186,6 @@ hand, it may be the case that the nondeterministic version always gives
 the correct answer for matrices we test on a development machine, but as soon as
 we ship the program to a client's machines with a different number of processors
 (for example), the bug exhibits itself.
-
-\input{gauss}
 
 \endinput
 

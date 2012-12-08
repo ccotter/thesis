@@ -9,10 +9,8 @@ machine with 8BG of RAM running Arch Linux.
 
 This section is divided into two logical parts. We first discuss the kernel
 implementation, then the user library and in memory file system.
-
-The first step was adding the three new syscalls: {\tt dput()}, {\tt dget()},
-and {\tt dret()}. Our initial focus was adding process management related
-functionality, then we added the {\tt Zero}, {\tt Copy}, and
+Our initial focus in the kernel work was adding process management related
+functionality; then we added the {\tt Zero}, {\tt Copy}, and
 {\tt Snapshot/Merge} operations in that order.
 
 \subsection{Process organization}
@@ -71,7 +69,7 @@ wish to exploit as much concurrency as possible.
 			process's death implies all children should die as well.
 		\item Use existing code for handling process deletion: do\_exit().
 		\item Block signals from reaching deterministic processes.
-		\item Exceptions (e.g. divide-by-zero) immediately stop the process; parents
+		\item Exceptions (e.g., divide-by-zero) immediately stop the process; parents
 			must acknowledge and handle the child's exception.
 	\end{itemize}
 	\item Loosened root process requirements.
@@ -85,7 +83,7 @@ wish to exploit as much concurrency as possible.
 \fi
 
 Master processes can use {\tt dput()} to specify a set of signals to ignore
-while in a blocking {\tt dput()} or {\tt dget()} (i.e. waiting for a child to
+while in a blocking {\tt dput()} or {\tt dget()} (i.e., waiting for a child to
 stop). This can be useful when a console operation wishes to
 kill an application with a {\tt SIGINT}, but does not want other signals to
 interrupt the master process.
@@ -94,7 +92,8 @@ The last feature relating strictly to process organization is register state
 copying. The initial {\tt dput()} call that creates a child automatically
 copies register state, since we effectively delegate work to {\tt fork()}.
 Subsequent calls to {\tt dput()} and {\tt dget()} can put or retrieve a child's
-general-purpose register state.
+general-purpose register state by accessing fields in the process's
+{\tt task\_struct} descriptor.
 
 \iffalse
 	\end{itemize}
@@ -107,11 +106,10 @@ general-purpose register state.
 
 \label{sec:memop}
 
-As mentioned in the section \ref{sec:challenges}, Linux's memory subsystem is
+As mentioned in section \ref{sec:challenges}, Linux's memory subsystem is
 very complex. Before discussing how we implemented the memory operations,
 we will give some technical background on Linux's memory subsystem. Our
-implementation reused many existing functions, so this discussion will be
-useful.
+implementation reuses many existing functions.
 
 \begin{figure}[t]
 \includegraphics[scale=.63]{mm_struct.pdf}
@@ -122,7 +120,7 @@ useful.
 \paragraph{Background}
 A process's entire virtual memory is managed by a {\tt mm\_struct}.
 {\tt mm\_struct}s maintain a list of contiguously mapped memory regions with
-identical permission bits (e.g. read/write/execute); these regions are stored as
+identical permission bits (e.g., read/write/execute); these regions are stored as
 {\tt vm\_area\_struct}s (see Figure \ref{fig:mmstruct}). Anonymous memory
 (memory not backed by a file) is mapped to a
 read only global zero page, and new pages
@@ -156,7 +154,7 @@ creates anonymous memory regions, will only perform work on {\tt current}.
 			the current running process that invoked a syscall. Most functionality
 			in the memory subsystem works this way and is hardcoded this way.
 		\item Before any real work could be done, I generalized some memory functions
-			to work on any process (e.g. mmap\_region(), make\_pages\_present()).
+			to work on any process (e.g., mmap\_region(), make\_pages\_present()).
 		\item The copy\_page\_range() function copies a range of memory via
 			copy-on-write, but it is really a helper function for fork() and is
 			not very generic.
@@ -169,11 +167,11 @@ creates anonymous memory regions, will only perform work on {\tt current}.
 
 \paragraph{Zero}
 Since {\tt dput()} and {\tt dget()} operate on a child process, not the calling
-process, the first step  was to generalize Linux's memory subsystem. Functions
-like {\tt do\_mmap()} were enhanced to take an extra argument specifying the
+process, the first step  was to generalize Linux's memory subsystem. We enhanced
+functions like {\tt do\_mmap()} to take an extra argument specifying the
 target process's virtual memory structure.
 
-Implementing the Zero operation was thus very simple. {do\_mmap()} maps
+Implementing the Zero operation was thus very simple. {\tt do\_mmap()} maps
 anonymous memory to a zeroed out region automatically, so to perform a Zero
 operation, the kernel unmaps then remaps the region in question. Most of the
 memory subsystem deals in page aligned regions, so the kernel needs to handle
@@ -220,7 +218,7 @@ non page aligned begin and end regions with a {\tt memcpy()}.
 
 \paragraph{Snap/Merge}
 The Snap/Merge combination is the most complicated feature, and unfortunately we
-were not able to reused as much existing code as with Zero and Copy. Performing
+were not able to reuse as much existing code as with Zero and Copy. Performing
 a Snapshot is relatively easy. We destroy the target's {\tt mm\_struct}, then
 mimic {\tt fork()}: we make a copy of the source's {\tt mm\_struct} and attach
 it to the destination. This effectively copies the source's virtual memory image
@@ -338,7 +336,7 @@ by checking if the executing process is the master.
 Since master processes have direct access to the legacy Linux kernel API,
 some functions server dual purposes.
 Functions like {\tt printf()} are designed to access nondeterministic
-(e.g. {\tt write()}) syscalls when the calling process is a
+(e.g., {\tt write()}) syscalls when the calling process is a
 master process. Deterministic
 processes use a separate version of {\tt printf()} that writes output to the
 in memory file system. The file system is synced at synchronization points, and
@@ -376,9 +374,9 @@ us, and the ``borrowed user library'' category counts code that was reused from
 
 \input{loc}
 
-The kernel~\footnote{
+The kernel\footnote{
 \url{https://github.com/ccotter/linux-deterministic}} and user
-library~\footnote{\url{https://github.com/ccotter/libdeterm}} are available on
+library\footnote{\url{https://github.com/ccotter/libdeterm}} are available on
 GitHub as two separate repositories. The deterministic Linux kernel
 is maintained as a separate branch {\tt v3.0-det}.
 

@@ -33,10 +33,11 @@ to enforce determinism on \emph{arbitrary} user programs as Determinator does.
 dOS~\cite{bergan2010deterministic} adds \emph{deterministic process groups}
 (DPGs) to the Linux kernel. A deterministic scheduler in the kernel enforces
 deterministic thread interactions within a DPG.
-To interact with external objects (e.g. network packets), DPGs use a user
+To interact with external objects (e.g., network packets), DPGs use a user
 space service called a \emph{shim}. The shim gives DPGs complete control over
 external nondeterministic inputs, similar to how Determinator's root space
-controls external I/O. dOS does not use a "clean-slate" approach as Determinator
+controls external I/O. dOS does not use a ``clean-slate'' approach as
+Determinator
 does~\cite{Aviram10}, and thus has better backwards compatibility with Linux.
 However, like the other deterministic environments mentioned, dOS merely masks
 the effects of nondeterminism instead of removing nondeterminism entirely as

@@ -15,11 +15,11 @@ In his PhD thesis, Aviram classified the types of synchronization abstractions
 used in the SPLASH, NBP-OMP, and PARSEC benchmark
 programs~\cite{aviram2011deterministic}, and the results are summarized in Table
 \ref{tab:synctypes}. The first three rows shows uses of naturally deterministic
-library constructs; these account for 65.5\% of the total. Usages of
+library constructs; these account for 65.5\% of the total. Uses of
 nondeterministic primitives to enforce deterministic behavior by the program
-itself are show in row four. The last row shows
+itself are shown in row four. The last row shows
 uses nondeterministic abstractions like mutex locks and condition variables.
-Future version of our user library could implement barriers and the work sharing
+Future versions of our user library could implement barriers and the work sharing
 parallel abstractions,
 building upon the {\tt dput()}/{\tt dget()}/{\tt dret()} syscall primitives.
 Doing so would appear to extend the types of parallel
