@@ -98,7 +98,8 @@ by Aviram et al. Linux supports a wider range of process communication utilities
 including signals, pipes, and System V IPC.
 
 \begin{figure}[t]
-\includegraphics[scale=.39]{anon_vma.pdf}
+\center{
+\includegraphics[scale=.55]{anon_vma.pdf}}
 \caption{Data structure relationships associated with object-based reverse
 mapping. The {\tt struct page} C type encapsulates information about every
 page frame of physical memory.
@@ -160,15 +161,16 @@ implementing Determinator's three memory operations ({\tt Zero}, {\tt Copy}, and
 			start address in every page table entry.
 \fi
 
-\begin{figure*}[ht]
-\includegraphics[scale=.65]{proc-diagram.pdf}
+\begin{figure}[ht]
+\center{
+\includegraphics[scale=.6]{proc-diagram.pdf}}
 \caption{Illustration of the hybrid process model with two deterministic process
 groups. Legacy nondeterministic processes ({\tt firefox},
 {\tt ssh}) run as children of {\tt init}. {\tt make} and {\tt matmult} are
 masters of deterministic applications. The deterministic children (the diamond
 processes) are isolated from the rest of the system.}
 \label{fig:proc-diagram}
-\end{figure*}
+\end{figure}
 
 \paragraph{Standard C Library} Many Linux applications written in C use
 the standard C library. This library in large part functions as a wrapper around

@@ -1,6 +1,7 @@
 
-\begin{table*}[t]
-\centering
+\begin{table}[t]
+\center{
+\scalebox{.83}{
 \begin{tabular}{c | c | l}
 Call & Interacts with & Description \\
 \hline
@@ -10,10 +11,10 @@ Get & Child & Copy register state, virtual memory range, and/or
 changes since the last snapshot out of a child. \\
 Ret & Parent & Stop and wait for parent to issue a Get or Put.
 Processor traps also cause implicit Ret. \\
-\end{tabular}
+\end{tabular}}}
 \caption{System calls comprising Determinator’s kernel API.~\cite{Aviram10}}
 \label{tab:syscalls}
-\end{table*}
+\end{table}
 
 \endinput
 

@@ -1,6 +1,7 @@
 
 \begin{table}[t]
-\begin{tabularx}{233pt}{c | c | c | l}
+\center{
+\begin{tabular}{c | c | c | l}
 Put & Get & Option & Description \\
 \hline
 X & X & Regs & PUT/GET child's register state. \\
@@ -11,7 +12,7 @@ X &  & Start & Start child space executing. \\
  & X & Merge & Merge child’s changes into parent. \\
 X & X & Perm & Set memory access permissions. \\
 X & X & Tree & Copy (grand)child subtree. \\
-\end{tabularx}
+\end{tabular}}
 \caption{Options/arguments to the Put and Get calls.~\cite{Aviram10}}
 \label{tab:options}
 \end{table}
