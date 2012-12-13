@@ -14,9 +14,10 @@ performed comparable to nondeterministic Linux equivalents, but fine-grained
 applications did not scale nearly as well, incurring high performance costs
 owing to memory synchronization costs.
 
+\input{dspeedup}
+\input{raw-md5}
 \input{matoverhead}
 \input{qoverhead}
-\input{dspeedup}
 
 The primary goal of our evaluations is to determine if Linux can efficiently run
 applications using Determinator's programming model. Since the deterministic
@@ -137,7 +138,6 @@ join method is very general in the types of programs it can be used with. We
 could likely trade this generality for performance gains.
 
 \input{scale}
-\input{raw-md5}
 
 \subsubsection{Qualitative evaluation}
 This section attempts to give a qualitative understanding of how the benchmarks
