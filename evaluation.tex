@@ -51,6 +51,9 @@ averages the run times. Both matrix benchmarks run ten tests on different inputs
 and average the results. \emph{md5} searches for ten fixed ASCII strings
 whose values are distributed randomly over a fixed alphabet. The run times for
 all ten runs are averaged to a single value, and this is done five times.
+Both matrix benchmarks were tested before running the actual evaluations;
+we compared output from both versions of each benchmark and found them to be
+identical.
 
 The \emph{matmult}, \emph{qsort}, and \emph{md5} benchmarks are modified
 versions of benchmarks found in Determinator's source on
@@ -60,9 +63,19 @@ on the Internet~\cite{lualg}. We tested on a 2 socket $\times$ 4 core 2.33 GHz
 Intel Xeon PC running Arch Linux with 8GB of RAM. All benchmarks use the same
 modified \mbox{x86\_64} Linux 3.0 kernel.
 
+\subsubsection{Run time data}
+Table \ref{tab:raw-md5} shows the average of five runs for \emph{md5}.
+Run times for the other benchmarks are reported at the end of this document.
+Table \ref{tab:raw-pmat} shows average run times for the pthread
+\emph{lu} and \emph{matmult}, and table \ref{tab:raw-dmat} shows average run
+times for the deterministic versions. Table \ref{tab:raw-merge} shows the time
+spent in the kernel doing a virtual memory merge for \emph{lu} and
+\emph{matmult}. Table \ref{tab:raw-pqsort} reports the average run times for the
+pthread and deterministic \emph{pqsort} benchmark.
+
 \subsubsection{Results}
 Applications that require a lot of memory synchronization show considerable
-overhead for small inputs, but have much more acceptable overheads for large
+overhead for small inputs but have much more acceptable overheads for large
 inputs.
 \mbox{Table \ref{tab:matover}} shows deterministic overheads for the \emph{lu}
 and \emph{matmult} benchmarks.
@@ -75,7 +88,9 @@ input matrix reached at least $32\times 32$ (\emph{matmult}) or $128\times 128$
 input sizes (at least $1024\times 1024$ for \emph{lu} and $256\times 256$ for
 \emph{matmult}) when we begin to
 see more ``acceptable'' deterministic overheads of at
-most $2.3\times$.
+most $2.3\times$. The matmult benchmark shows overhead of .9 for $N=2$ on input
+of size $1024\times 1024$, indicating the deterministic version ran faster than
+the pthread version, but we have no explanation for this behavior.
 
 The \emph{qsort} benchmark also shows unacceptable overhead for small inputs,
 but once the input array size becomes at least 800K, overheads stayed under
@@ -122,6 +137,7 @@ join method is very general in the types of programs it can be used with. We
 could likely trade this generality for performance gains.
 
 \input{scale}
+\input{raw-md5}
 
 \subsubsection{Qualitative evaluation}
 This section attempts to give a qualitative understanding of how the benchmarks

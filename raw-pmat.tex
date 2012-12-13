@@ -1,0 +1,37 @@
+
+\center{
+\begin{table*}[p]
+\scalebox{.75}{
+\begin{tabular}{|l| l l l l | l l l l|}
+\hline
+ & \multicolumn{4}{c|}{\textbf{lu}} & \multicolumn{4}{c|}{\textbf{matmult}} \\
+Dimension & $N=1$ & $N=2$ & $N=4$ & $N=8$ & $N=1$ & $N=2$ & $N=4$ & $N=8$ \\
+\hline
+16$\times$16 & 0.1 $\pm$ 0.1 & 0.8 $\pm$ 0.2 & 3.1 $\pm$ 0.3 & 15.1 $\pm$ 0.5 &
+  0.06 $\pm$ 0.01 & 0.1 $\pm$ 0.01 & 0.1 $\pm$ 0.01 & 0.5 $\pm$ 0.02 \\
+32$\times$32 & 0.2 $\pm$ 0.03 & 0.9 $\pm$ 0.07 & 3.1 $\pm$ 0.2 & 15.9 $\pm$ 0.6
+  & 0.2 $\pm$ 0.01 & 0.2 $\pm$ 0.01 & 0.2 $\pm$ 0.01 & 0.5 $\pm$ 0.03 \\
+64$\times$64 & 1.4 $\pm$ 0.07 & 1.9 $\pm$ 0.2 & 3.6 $\pm$ 0.2 & 14.7 $\pm$ 0.3 &
+  1.7 $\pm$ 0.01 & 1.3 $\pm$ 0.4 & 1.0 $\pm$ 0.01 & 0.6 $\pm$ 0.04 \\
+128$\times$128 & 11.2 $\pm$ 0.08 & 8.8 $\pm$ 0.2 & 7.7 $\pm$ 0.2 &
+  16.0 $\pm$ 1.1 & 14.8 $\pm$ 0.02 & 8.7 $\pm$ 0.02 & 4.5 $\pm$ 0.02 & 2.5 $\pm$
+  0.01 \\
+256$\times$256 & 88.9 $\pm$ 0.2 & 65.6 $\pm$ 0.5 & 41.3 $\pm$ 1.0 & 29.6 $\pm$
+  0.5 & 118 $\pm$ 0.04 & 69.0 $\pm$ 0.01 & 34.6 $\pm$ 0.01 & 17.6 $\pm$ 0.02 \\
+512$\times$512 & 722 $\pm$ 25.3 & 497 $\pm$ 9.6 & 302 $\pm$ 6.5 & 180 $\pm$ 2.3
+  & 963 $\pm$ 25.0 & 558 $\pm$ 0.1 & 303 $\pm$ 49.6 & 138 $\pm$ 0.03 \\
+1024$\times$1024 & 8,382 $\pm$ 35.2 & 4,136 $\pm$ 64.4 & 2,506 $\pm$ 41.7 &
+  1,373 $\pm$ 8.9 & 62,822 $\pm$ 14.4 & 38,405 $\pm$ 3,958 & 19,785 $\pm$ 1,331
+  & 9,646 $\pm$ 604 \\
+2048$\times$2048 & 105,074 $\pm$ 42.6 & 72,694 $\pm$ 412 & 39,971 $\pm$ 405 &
+  25,395 $\pm$ 293 & - & - & - & - \\
+\hline
+\end{tabular}}
+\caption{Run times in milliseconds for pthread \emph{lu} and \emph{matmult}.
+Times are averaged over ten runs with standard deviations shown.}
+\label{tab:raw-pmat}
+\end{table*}
+}
+
+\endinput
+

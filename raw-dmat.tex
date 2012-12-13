@@ -1,0 +1,36 @@
+
+\begin{table*}[p]
+\center{
+\scalebox{.75}{
+\begin{tabular}{|l| l l l l | l l l l|}
+\hline
+ & \multicolumn{4}{c|}{\textbf{lu}} & \multicolumn{4}{c|}{\textbf{matmult}} \\
+Dimension & $N=1$ & $N=2$ & $N=4$ & $N=8$ & $N=1$ & $N=2$ & $N=4$ & $N=8$ \\
+\hline
+16$\times$16 & 1.7 $\pm$ 0.06 & 33.7 $\pm$ 2.1 & 145 $\pm$ 6.9 & 465 $\pm$ 11.1
+  & 0.6 $\pm$ 0.02 & 2.4 $\pm$ 0.01 & 5.0 $\pm$ 0.4 & 8.2 $\pm$ 0.8 \\
+32$\times$32 & 2.1 $\pm$ 0.04 & 34.4 $\pm$ 2.2 & 142 $\pm$ 5.5 & 463 $\pm$ 16.8
+  & 0.8 $\pm$ 0.00 & 2.6 $\pm$ 0.01 & 4.9 $\pm$ 0.6 & 8.0 $\pm$ 0.6 \\
+64$\times$64 & 3.7 $\pm$ 0.02 & 39.5 $\pm$ 1.9 & 150 $\pm$ 6.6 & 471 $\pm$ 10.5
+  & 2.2 $\pm$ 0.00 & 4.9 $\pm$ 0.4 & 7.6 $\pm$ 0.7 & 8.3 $\pm$ 0.7 \\
+128$\times$128 & 15.3 $\pm$ 0.2 & 53.1 $\pm$ 2.6 & 172 $\pm$ 5.4 & 492 $\pm$
+  7.6 & 15.2 $\pm$ 0.2 & 16.3 $\pm$ 2.5 & 20.0 $\pm$ 2.1 & 17.0 $\pm$ 1.2 \\
+256$\times$256 & 98.9 $\pm$ 0.3 & 138 $\pm$ 9.7 & 288 $\pm$ 6.4 & 555 $\pm$
+  5.5 & 119 $\pm$ 0.10 & 80.0 $\pm$ 6.0 & 61.1 $\pm$ 4.9 & 41.0 $\pm$ 4.8 \\
+512$\times$512 & 745 $\pm$ 25.9 & 605 $\pm$ 20.7 & 701 $\pm$ 23.5 & 1059 $\pm$
+  22.3 & 957 $\pm$ 2.1 & 584 $\pm$ 41.0 & 346 $\pm$ 46.2 & 206 $\pm$ 33.1 \\
+1024$\times$1024 & 11,863 $\pm$ 270 & 4,324 $\pm$ 133 & 3,013 $\pm$ 94.8 & 2,569
+  $\pm$ 63.6 & 63,480 $\pm$ 72.3 & 35,344 $\pm$ 1994 & 19,606 $\pm$ 542 & 11,569
+  $\pm$ 571 \\
+2048$\times$2048 & 144,053 $\pm$ 209 & 72,420 $\pm$ 798 & 40,339 $\pm$ 1,362 &
+  27,018 $\pm$ 383 & - & - & - & - \\
+\hline
+\end{tabular}}}
+\caption{Run times in milliseconds for deterministic \emph{lu} and
+\emph{matmult}. Times are averaged over ten runs with standard deviations
+shown.}
+\label{tab:raw-dmat}
+\end{table*}
+
+\endinput
+
