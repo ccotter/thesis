@@ -1,5 +1,7 @@
 MAIN = cotter-thesis.ltx
 
+TALK = talk
+
 BASE      := $(basename $(MAIN))
 SRCEXT    := $(patsubst $(BASE).%,%,$(MAIN))
 XFIGS     := $(wildcard fig/*.fig)
@@ -45,7 +47,7 @@ PYTHON    = python
 
 SHA = shasum
 
-all: $(BASE).pdf 
+all: $(BASE).pdf $(TALK).pdf
 
 data-stamp: $(RSLTS) $(RSLT2GRAPH) $(RSLT2GRAPHCONFIG) $(wildcard *skeleton*)
 # Depot way (also used in speak-up):
@@ -118,6 +120,12 @@ $(BASE).pdf: %.pdf: %.$(SRCEXT) $(TEXFILES) $(BIBFILES) \
 	! $(RERUN) || $(LATEX) $< || ! rm -f $@
 	touch $*.dvi
 	test ! -f .xpdf-running || xpdf -remote $(BASE)-server -reload
+
+$(TALK).pdf: %.pdf: %.$(SRCEXT) $(TEXFILES) $(BIBFILES) \
+				$(BINFIGS) $(GENTEX) $(TEXFIGS)	\
+				$(ALWAYS) $(TEXTABLES) $(CORELPDF) $(GRAPHS)
+	test ! -s $*.aux || $(BIBTEX) $* || rm -f $*.aux $*.bbl
+	$(LATEX) $< || ! rm -f $@
 
 %.pdf: %.ltx
 	$(LATEX) $< || !rm -f $@
